@@ -2,3 +2,6 @@
 	path = lib/pHash
 	url = git@github.com:clearscene/pHash.git
 	branch = 0.9.6
+[submodule "CImg"]
+	path = lib/CImg
+	url = git@github.com:dtschump/CImg.git

@@ -24,6 +24,7 @@ before_install:
     - git submodule update --init --recursive
 script:
   # build dependencies
+  - cd lib/pHash
   - ./configure --disable-video-hash --disable-audio-hash CXXFLAGS="-I$TRAVIS_BUILD_DIR/lib/CImg" LDFLAGS="-lpthread"
   # build pHash lib
   - make CXX='g++-4.8'

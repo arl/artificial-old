@@ -1,0 +1,22 @@
+language: cpp
+compiler:
+  - gcc
+addons:
+  apt:
+    sources:
+    - ubuntu-toolchain-r-test
+    packages:
+    - gcc-4.8
+    - g++-4.8
+    #- clang
+    - libpng12-dev
+    #- libjpeg-dev
+    #- libmagick++-dev
+    #- libgraphicsmagick++1-dev
+    #- libfftw3-dev
+    #- zlib1g-dev
+script:
+  # build dependencies
+  - ./configure --disable-video-hash --disable-audio-hash CXXFLAGS="-I$TRAVIS_BUILD_DIR/lib/CImg" LDFLAGS="-lpthread"
+  # build pHash lib
+  - make CXX='g++-4.8'

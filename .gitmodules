@@ -1,0 +1,4 @@
+[submodule "phash"]
+	path = lib/pHash
+	url = git@github.com:clearscene/pHash.git
+	branch = 0.9.6

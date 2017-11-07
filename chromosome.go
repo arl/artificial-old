@@ -1,9 +1,21 @@
 package main
 
 import (
+	"flag"
 	"image"
 	"image/color"
+	"math/rand"
 )
+
+var (
+	newPolyMaxPoints int
+	newPolyMinPoints int
+)
+
+func init() {
+	flag.IntVar(&newPolyMinPoints, "min-points", 3, "minimum number of points for new polygons")
+	flag.IntVar(&newPolyMaxPoints, "max-points", 6, "maximum number of points for new polygons")
+}
 
 // poly represents a polygon of the image
 type poly struct {
@@ -15,6 +27,37 @@ type poly struct {
 type imageDNA struct {
 	w, h  int
 	polys []poly
+}
+
+// randomPoint creates and returns a random polygon made of points in the image,
+// with minPts < numPts < maxPts
+func randomPoly(img *imageDNA, minPts, maxPts int, rng *rand.Rand) poly {
+	poly := poly{}
+	// create random number of points
+	numPoints := minPts + rng.Intn(maxPts-minPts)
+	poly.pts = make([]image.Point, numPoints)
+	for j := 0; j < numPoints; j++ {
+		// each point is random
+		poly.pts[j] = randomPoint(img, rng)
+	}
+	// set random color
+	poly.col = randomColor(rng)
+	return poly
+}
+
+// randomPoint creates and returns a random point in the image
+func randomPoint(img *imageDNA, rng *rand.Rand) image.Point {
+	return image.Pt(rng.Intn(img.w), rng.Intn(img.w))
+}
+
+// randomPoint returns a random RGBA color
+func randomColor(rng *rand.Rand) color.RGBA {
+	return color.RGBA{
+		R: byte(rng.Intn(255)),
+		G: byte(rng.Intn(255)),
+		B: byte(rng.Intn(255)),
+		A: byte(10 + rng.Intn(50)),
+	}
 }
 
 // clone returns a new imageDNA that is an exact copy of the receiver

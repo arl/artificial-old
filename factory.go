@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"image"
 	"math/rand"
 
 	"github.com/aurelien-rainone/evolve/factory"
@@ -39,13 +38,7 @@ func (g *imageDNAGenerator) GenerateRandomCandidate(rng *rand.Rand) framework.Ca
 	var img imageDNA
 	img.polys = make([]poly, g.numPolys)
 	for i := 0; i < g.numPolys; i++ {
-		numPoints := 3 + rng.Intn(3)
-		p := &img.polys[i]
-		p.pts = make([]image.Point, numPoints)
-		p.col.R = byte(rng.Intn(255))
-		p.col.G = byte(rng.Intn(255))
-		p.col.B = byte(rng.Intn(255))
-		p.col.A = byte(10 + rng.Intn(50))
+		img.polys[i] = randomPoly(&img, newPolyMinPoints, newPolyMaxPoints, rng)
 	}
 	return &img
 }

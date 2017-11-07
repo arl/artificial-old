@@ -38,7 +38,8 @@ func main() {
 }
 
 func evolve(img image.Image) error {
-	DNAFactory, err := NewImageDNAFactory(50, img.Bounds().Dx(), img.Bounds().Dy())
+	// gene factory
+	DNAFactory, err := newImageDNAfactory(50, img.Bounds().Dx(), img.Bounds().Dy())
 	if err != nil {
 		return nil
 	}

@@ -9,16 +9,16 @@ import (
 	"github.com/aurelien-rainone/evolve/framework"
 )
 
-type ImageDNAFactory struct {
+type imageDNAfactory struct {
 	factory.AbstractCandidateFactory
 }
 
-func NewImageDNAFactory(numPolys, imgW, imgH int) (*ImageDNAFactory, error) {
+func newImageDNAfactory(numPolys, imgW, imgH int) (*imageDNAfactory, error) {
 	if imgW == 0 || imgH == 0 {
 		return nil, fmt.Errorf("invalid dimensions %v x %v", imgW, imgH)
 	}
 
-	sf := &ImageDNAFactory{
+	sf := &imageDNAfactory{
 		factory.AbstractCandidateFactory{
 			&imageDNAGenerator{
 				numPolys: numPolys,
@@ -36,16 +36,16 @@ type imageDNAGenerator struct {
 }
 
 func (g *imageDNAGenerator) GenerateRandomCandidate(rng *rand.Rand) framework.Candidate {
-	var img ImageDNA
-	img.polys = make([]Poly, g.numPolys)
+	var img imageDNA
+	img.polys = make([]poly, g.numPolys)
 	for i := 0; i < g.numPolys; i++ {
 		numPoints := 3 + rng.Intn(3)
-		poly := &img.polys[i]
-		poly.pts = make([]image.Point, numPoints)
-		poly.col.R = byte(rng.Intn(255))
-		poly.col.G = byte(rng.Intn(255))
-		poly.col.B = byte(rng.Intn(255))
-		poly.col.A = byte(10 + rng.Intn(50))
+		p := &img.polys[i]
+		p.pts = make([]image.Point, numPoints)
+		p.col.R = byte(rng.Intn(255))
+		p.col.G = byte(rng.Intn(255))
+		p.col.B = byte(rng.Intn(255))
+		p.col.A = byte(10 + rng.Intn(50))
 	}
 	return &img
 }

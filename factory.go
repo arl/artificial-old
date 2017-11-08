@@ -30,15 +30,20 @@ func newImageDNAfactory(numPolys, imgW, imgH int) (*imageDNAfactory, error) {
 }
 
 type imageDNAGenerator struct {
-	numPolys   int
-	imgW, imgH int
+	numPolys   int //
+	imgW, imgH int // width/height of the reference image
 }
 
 func (g *imageDNAGenerator) GenerateRandomCandidate(rng *rand.Rand) framework.Candidate {
-	var img imageDNA
-	img.polys = make([]poly, g.numPolys)
-	for i := 0; i < g.numPolys; i++ {
-		img.polys[i] = randomPoly(&img, newPolyMinPoints, newPolyMaxPoints, rng)
+	// create image dna with same dimensions than reference image
+	var img = &imageDNA{
+		w:     g.imgW,
+		h:     g.imgH,
+		polys: make([]poly, g.numPolys),
 	}
-	return &img
+	// add N `numPolys` random polygons
+	for i := 0; i < g.numPolys; i++ {
+		img.polys[i] = randomPoly(img, newPolyMinPoints, newPolyMaxPoints, rng)
+	}
+	return img
 }

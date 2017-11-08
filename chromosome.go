@@ -1,21 +1,10 @@
 package main
 
 import (
-	"flag"
 	"image"
 	"image/color"
 	"math/rand"
 )
-
-var (
-	newPolyMaxPoints int
-	newPolyMinPoints int
-)
-
-func init() {
-	flag.IntVar(&newPolyMinPoints, "min-points", 3, "minimum number of points for new polygons")
-	flag.IntVar(&newPolyMaxPoints, "max-points", 6, "maximum number of points for new polygons")
-}
 
 // poly represents a polygon of the image
 type poly struct {

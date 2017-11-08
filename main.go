@@ -15,10 +15,16 @@ import (
 	"github.com/aurelien-rainone/evolve/termination"
 )
 
-var inputFile string
+var (
+	inputFile        string
+	newPolyMaxPoints int
+	newPolyMinPoints int
+)
 
 func init() {
-	flag.StringVar(&inputFile, "input", "", "reference image")
+	flag.StringVar(&inputFile, "input", "", "reference image (only PNG)")
+	flag.IntVar(&newPolyMinPoints, "min-points", 3, "minimum number of points for new polygons")
+	flag.IntVar(&newPolyMaxPoints, "max-points", 6, "maximum number of points for new polygons")
 }
 
 func check(err error) {

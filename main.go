@@ -24,7 +24,7 @@ var (
 
 func init() {
 	flag.StringVar(&inputFile, "input", "", "reference image (only PNG)")
-	flag.IntVar(&newImageNumPolys, "num-poly", 50, "starting  number of polygons for new images")
+	flag.IntVar(&newImageNumPolys, "num-polys", 50, "starting  number of polygons for new images")
 	flag.IntVar(&newPolyMinPoints, "min-points", 3, "minimum number of points for new polygons")
 	flag.IntVar(&newPolyMaxPoints, "max-points", 6, "maximum number of points for new polygons")
 }

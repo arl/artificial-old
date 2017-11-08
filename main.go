@@ -73,9 +73,12 @@ func evolveImage(img image.Image) error {
 	// define a selection strategy
 	var selectionStrategy = &selection.RouletteWheelSelection{}
 
+	// define a fitness evaluator
+	evaluator := &fitnessEvaluator{img}
+
 	engine := evolve.NewGenerationalEvolutionEngine(DNAFactory,
 		mutation,
-		fitnessEvaluator,
+		evaluator,
 		selectionStrategy,
 		rng)
 

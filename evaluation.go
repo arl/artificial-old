@@ -12,6 +12,8 @@ type fitnessEvaluator struct {
 
 func (fe *fitnessEvaluator) Fitness(c framework.Candidate, pop []framework.Candidate) float64 {
 	//img := c.(*imageDNA)
+	img := c.(*imageDNA)
+	img.render()
 	return 0
 }
 

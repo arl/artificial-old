@@ -34,7 +34,7 @@ func (img *imageDNA) clone() *imageDNA {
 	return &imageDNA{polys: polys, w: img.w, h: img.h}
 }
 
-func (img *imageDNA) render() image.Image {
+func (img *imageDNA) render() *image.RGBA {
 	// Initialize the graphic context on an RGBA image
 	dest := image.NewRGBA(image.Rect(0, 0, img.w, img.h))
 	gc := draw2dimg.NewGraphicContext(dest)

@@ -4,6 +4,8 @@ import (
 	"image"
 	"image/color"
 	"math/rand"
+
+	"github.com/llgcode/draw2d/draw2dimg"
 )
 
 // poly represents a polygon of the image
@@ -30,6 +32,32 @@ func (img *imageDNA) clone() *imageDNA {
 		polys = append(polys, poly)
 	}
 	return &imageDNA{polys: polys, w: img.w, h: img.h}
+}
+
+func (img *imageDNA) render() image.Image {
+	// Initialize the graphic context on an RGBA image
+	dest := image.NewRGBA(image.Rect(0, 0, img.w, img.h))
+	gc := draw2dimg.NewGraphicContext(dest)
+	gc.SetLineWidth(1)
+
+	for i := 0; i < len(img.polys); i++ {
+		poly := img.polys[i]
+		// set brush color
+		gc.SetFillColor(poly.col)
+		gc.SetStrokeColor(poly.col)
+
+		// draw polygon as a closed path
+		gc.MoveTo(float64(poly.pts[0].X), float64(poly.pts[0].Y))
+		for j := 1; j < len(poly.pts); j++ {
+			pt := poly.pts[j]
+			gc.LineTo(float64(pt.X), float64(pt.Y))
+		}
+		gc.SetLineWidth(0)
+		gc.Close()
+		gc.FillStroke()
+	}
+
+	return dest
 }
 
 // randomPoint creates and returns a random polygon made of points in the image,

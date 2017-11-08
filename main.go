@@ -19,10 +19,12 @@ var (
 	inputFile        string
 	newPolyMaxPoints int
 	newPolyMinPoints int
+	newImageNumPolys int
 )
 
 func init() {
 	flag.StringVar(&inputFile, "input", "", "reference image (only PNG)")
+	flag.IntVar(&newImageNumPolys, "num-poly", 50, "starting  number of polygons for new images")
 	flag.IntVar(&newPolyMinPoints, "min-points", 3, "minimum number of points for new polygons")
 	flag.IntVar(&newPolyMaxPoints, "max-points", 6, "maximum number of points for new polygons")
 }
@@ -39,23 +41,25 @@ func main() {
 		flag.Usage()
 		os.Exit(1)
 	}
-	fmt.Println("loading inputFile")
-	infile, err := os.Open(inputFile)
-	check(err)
-	defer infile.Close()
 
-	img, err := png.Decode(infile)
+	f, err := os.Open(inputFile)
+	check(err)
+	defer f.Close()
+
+	fmt.Println("Reference image:", inputFile)
+
+	img, err := png.Decode(f)
 	check(err)
 	check(evolveImage(img))
 }
 
 func evolveImage(img image.Image) error {
 	// chromosome/image factory
-	DNAFactory, err := newImageDNAfactory(50, img.Bounds().Dx(), img.Bounds().Dy())
+	DNAFactory, err := newImageDNAfactory(newImageNumPolys,
+		img.Bounds().Dx(), img.Bounds().Dy())
 	if err != nil {
 		return nil
 	}
-	fmt.Println(DNAFactory)
 
 	// mutation
 	mutationOptions := mutationOptions{}

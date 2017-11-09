@@ -56,7 +56,6 @@ func (img *imageDNA) render() *image.RGBA {
 		gc.Close()
 		gc.FillStroke()
 	}
-
 	return dest
 }
 

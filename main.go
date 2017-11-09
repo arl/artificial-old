@@ -5,11 +5,14 @@ import (
 	"fmt"
 	"image"
 	"image/png"
+	"log"
 	"math/rand"
 	"os"
+	"os/signal"
 	"time"
 
 	"github.com/aurelien-rainone/evolve"
+	"github.com/aurelien-rainone/evolve/framework"
 	"github.com/aurelien-rainone/evolve/number"
 	"github.com/aurelien-rainone/evolve/selection"
 	"github.com/aurelien-rainone/evolve/termination"
@@ -108,7 +111,41 @@ func evolveImage(img *image.RGBA) error {
 		selectionStrategy,
 		rng)
 
-	result := engine.Evolve(10, 5, termination.NewTargetFitness(0, false))
-	fmt.Println(result)
+	var obs observer
+	engine.AddEvolutionObserver(&obs)
+
+	go func() {
+		result := engine.Evolve(10, 5, termination.NewTargetFitness(0, false))
+		fmt.Println("Evolution ended...", result)
+	}()
+
+	// handle termination
+	sigchan := make(chan os.Signal, 1)
+	signal.Notify(sigchan, os.Interrupt)
+	<-sigchan
+	log.Println("Evolution interrupted!")
+
+	// save best candidate
+	f, err := os.Create("best.png")
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+	fmt.Println(obs.best)
+	png.Encode(f, obs.best.render())
+
+	// do last actions and wait for all write operations to end
+	os.Exit(0)
 	return nil
+}
+
+type observer struct {
+	best *imageDNA
+}
+
+func (o *observer) PopulationUpdate(data *framework.PopulationData) {
+	dna := data.BestCandidate().(*imageDNA)
+	//o.best = dna.clone()
+	o.best = dna
+	fmt.Printf("Generation %d: (%v)\n", data.GenerationNumber(), data.BestCandidateFitness())
 }

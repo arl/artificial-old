@@ -12,7 +12,7 @@ type imageDNAfactory struct {
 	factory.AbstractCandidateFactory
 }
 
-func newImageDNAfactory(numPolys, imgW, imgH int) (*imageDNAfactory, error) {
+func newImageDNAfactory(imgW, imgH int) (*imageDNAfactory, error) {
 	if imgW == 0 || imgH == 0 {
 		return nil, fmt.Errorf("invalid dimensions %v x %v", imgW, imgH)
 	}
@@ -20,9 +20,8 @@ func newImageDNAfactory(numPolys, imgW, imgH int) (*imageDNAfactory, error) {
 	sf := &imageDNAfactory{
 		factory.AbstractCandidateFactory{
 			&imageDNAGenerator{
-				numPolys: numPolys,
-				imgW:     imgW,
-				imgH:     imgH,
+				imgW: imgW,
+				imgH: imgH,
 			},
 		},
 	}
@@ -30,20 +29,21 @@ func newImageDNAfactory(numPolys, imgW, imgH int) (*imageDNAfactory, error) {
 }
 
 type imageDNAGenerator struct {
-	numPolys   int //
 	imgW, imgH int // width/height of the reference image
 }
 
 func (g *imageDNAGenerator) GenerateRandomCandidate(rng *rand.Rand) framework.Candidate {
+	numPolys := appConfig.Polygon.MinPoints + rng.Intn(appConfig.Polygon.MaxPoints-appConfig.Polygon.MinPoints)
+
 	// create image dna with same dimensions than reference image
 	var img = &imageDNA{
 		w:     g.imgW,
 		h:     g.imgH,
-		polys: make([]poly, g.numPolys),
+		polys: make([]poly, numPolys),
 	}
 	// add N `numPolys` random polygons
-	for i := 0; i < g.numPolys; i++ {
-		img.polys[i] = randomPoly(img, newPolyMinPoints, newPolyMaxPoints, rng)
+	for i := 0; i < numPolys; i++ {
+		img.polys[i] = randomPoly(img, appConfig.Polygon.MinPoints, appConfig.Polygon.MaxPoints, rng)
 	}
 	return img
 }

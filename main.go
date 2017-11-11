@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"image"
 	"image/png"
@@ -14,23 +13,10 @@ import (
 	"github.com/aurelien-rainone/evolve"
 	"github.com/aurelien-rainone/evolve/framework"
 	"github.com/aurelien-rainone/evolve/number"
+	"github.com/aurelien-rainone/evolve/operators"
 	"github.com/aurelien-rainone/evolve/selection"
 	"github.com/aurelien-rainone/evolve/termination"
 )
-
-var (
-	inputFile        string
-	newPolyMaxPoints int
-	newPolyMinPoints int
-	newImageNumPolys int
-)
-
-func init() {
-	flag.StringVar(&inputFile, "input", "", "reference image (only PNG)")
-	flag.IntVar(&newImageNumPolys, "num-polys", 50, "starting  number of polygons for new images")
-	flag.IntVar(&newPolyMinPoints, "min-points", 3, "minimum number of points for new polygons")
-	flag.IntVar(&newPolyMaxPoints, "max-points", 6, "maximum number of points for new polygons")
-}
 
 func check(err error) {
 	if err != nil {
@@ -39,17 +25,13 @@ func check(err error) {
 }
 
 func main() {
-	flag.Parse()
-	if len(inputFile) == 0 {
-		flag.Usage()
-		os.Exit(1)
-	}
+	err := readConfig()
+	check(err)
 
-	f, err := os.Open(inputFile)
+	fmt.Println("Reference image:", appConfig.RefImage)
+	f, err := os.Open(appConfig.RefImage)
 	check(err)
 	defer f.Close()
-
-	fmt.Println("Reference image:", inputFile)
 
 	img, err := png.Decode(f)
 	check(err)
@@ -78,26 +60,56 @@ func convertToRGBA(img image.Image) *image.RGBA {
 	return rgba
 }
 
+func configureMutation() (*operators.AbstractMutation, error) {
+	opt := mutationOptions{}
+
+	var (
+		prob number.Probability
+		err  error
+	)
+
+	if prob, err = number.NewProbability(appConfig.Mutation.Polygon.Add); err != nil {
+		return nil, fmt.Errorf("add-polygon mutation rate error: %v", err)
+	}
+	opt.addPolygonMutation = number.NewConstantProbabilityGenerator(prob)
+
+	if prob, err = number.NewProbability(appConfig.Mutation.Polygon.Remove); err != nil {
+		return nil, fmt.Errorf("remove-polygon mutation rate error: %v", err)
+	}
+	opt.removePolygonMutation = number.NewConstantProbabilityGenerator(prob)
+
+	if prob, err = number.NewProbability(appConfig.Mutation.Polygon.Swap); err != nil {
+		return nil, fmt.Errorf("swap-polygon mutation rate error: %v", err)
+	}
+	opt.swapPolygonsMutation = number.NewConstantProbabilityGenerator(prob)
+
+	if prob, err = number.NewProbability(appConfig.Mutation.Polygon.Color); err != nil {
+		return nil, fmt.Errorf("change-polygon-color mutation rate error: %v", err)
+	}
+	opt.changePolyColorMutation = number.NewConstantProbabilityGenerator(prob)
+
+	mutation, err := newImageDNAMutation(opt)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't create image dna mutation: %v", err)
+	}
+	return mutation, nil
+}
+
 func evolveImage(img *image.RGBA) error {
+	// pseudo random number generator
+	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
+
 	// chromosome/image factory
-	DNAFactory, err := newImageDNAfactory(newImageNumPolys,
-		img.Bounds().Dx(), img.Bounds().Dy())
+	DNAFactory, err := newImageDNAfactory(img.Bounds().Dx(), img.Bounds().Dy())
 	if err != nil {
 		return nil
 	}
 
-	// mutation
-	mutationOptions := mutationOptions{}
-	mutationOptions.addPolygonMutation = number.NewConstantProbabilityGenerator(0.1)
-	mutationOptions.removePolygonMutation = number.NewConstantProbabilityGenerator(0.1)
-	mutationOptions.swapPolygonsMutation = number.NewConstantProbabilityGenerator(0.1)
-	mutation, err := newImageDNAMutation(mutationOptions)
+	// mutation settings
+	mutation, err := configureMutation()
 	if err != nil {
 		return err
 	}
-
-	// pseudo random number generator
-	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	// define a selection strategy
 	var selectionStrategy = &selection.RouletteWheelSelection{}
@@ -115,7 +127,7 @@ func evolveImage(img *image.RGBA) error {
 	engine.AddEvolutionObserver(&obs)
 
 	go func() {
-		result := engine.Evolve(10, 5, termination.NewTargetFitness(0, false))
+		result := engine.Evolve(2, 1, termination.NewTargetFitness(0, false))
 		fmt.Println("Evolution ended...", result)
 	}()
 

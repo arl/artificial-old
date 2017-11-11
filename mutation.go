@@ -1,6 +1,8 @@
 package main
 
 import (
+	"image/color"
+	"math"
 	"math/rand"
 
 	"github.com/aurelien-rainone/evolve/framework"
@@ -9,9 +11,10 @@ import (
 )
 
 type mutationOptions struct {
-	addPolygonMutation    number.ProbabilityGenerator
-	removePolygonMutation number.ProbabilityGenerator
-	swapPolygonsMutation  number.ProbabilityGenerator
+	addPolygonMutation      number.ProbabilityGenerator
+	removePolygonMutation   number.ProbabilityGenerator
+	swapPolygonsMutation    number.ProbabilityGenerator
+	changePolyColorMutation number.ProbabilityGenerator
 }
 
 func newImageDNAMutation(options mutationOptions) (*operators.AbstractMutation, error) {
@@ -24,6 +27,9 @@ func newImageDNAMutation(options mutationOptions) (*operators.AbstractMutation, 
 	}
 	if options.swapPolygonsMutation == nil {
 		options.swapPolygonsMutation = number.NewConstantProbabilityGenerator(number.ProbabilityZero)
+	}
+	if options.changePolyColorMutation == nil {
+		options.changePolyColorMutation = number.NewConstantProbabilityGenerator(number.ProbabilityZero)
 	}
 
 	mutater := &imageDNAMutater{options: options}
@@ -41,10 +47,12 @@ func (op *imageDNAMutater) Mutate(c framework.Candidate, rng *rand.Rand) framewo
 	// mutates a copy of the image, mutation do not touch the original
 	img := c.(*imageDNA).clone()
 
+	// image-level mutations
+
 	if op.options.addPolygonMutation.NextValue().NextEvent(rng) {
 		// add a new random polygon
 		img.polys = append(img.polys,
-			randomPoly(img, newPolyMinPoints, newPolyMaxPoints, rng))
+			randomPoly(img, appConfig.Polygon.MinPoints, appConfig.Polygon.MaxPoints, rng))
 	}
 
 	if op.options.removePolygonMutation.NextValue().NextEvent(rng) {
@@ -57,6 +65,16 @@ func (op *imageDNAMutater) Mutate(c framework.Candidate, rng *rand.Rand) framewo
 		// swap 2 random polygons
 		idx1, idx2 := rng.Intn(len(img.polys)), rng.Intn(len(img.polys))
 		img.polys[idx1], img.polys[idx2] = img.polys[idx2], img.polys[idx1]
+	}
+
+	// polygon-level mutations
+
+	for i := 0; i < len(img.polys); i++ {
+		poly := &img.polys[i]
+
+		if op.options.changePolyColorMutation.NextValue().NextEvent(rng) {
+			// change poly color
+		}
 	}
 
 	// returns cloned image, possibily mutated

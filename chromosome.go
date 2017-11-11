@@ -14,6 +14,15 @@ type poly struct {
 	pts []image.Point
 }
 
+func (p *poly) insert(idx int, pt image.Point) {
+	// append a zero-value at the back
+	p.pts = append(p.pts, image.Point{})
+	// right-shift all elements after the insertion point
+	copy(p.pts[idx+1:], p.pts[idx:])
+	// set the inserted element at given index
+	p.pts[idx] = pt
+}
+
 // imageDNA is a gene coding for an image made of polygons
 type imageDNA struct {
 	w, h  int

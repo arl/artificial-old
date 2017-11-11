@@ -29,6 +29,12 @@ var appConfig = struct {
 			// Rate [0, 1] of change polygon color mutation
 			Color float64 `required:"true"`
 		}
+		Point struct {
+			// Rate [0, 1] of add point mutation
+			Add float64 `required:"true"`
+			// Rate [0, 1] of remove point mutation
+			Remove float64 `required:"true"`
+		}
 	}
 }{}
 

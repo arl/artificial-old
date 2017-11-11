@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"image/color"
 	"math"
 	"math/rand"
@@ -10,37 +11,55 @@ import (
 	"github.com/aurelien-rainone/evolve/operators"
 )
 
-type mutationOptions struct {
-	addPolygonMutation      number.ProbabilityGenerator
-	removePolygonMutation   number.ProbabilityGenerator
-	swapPolygonsMutation    number.ProbabilityGenerator
-	changePolyColorMutation number.ProbabilityGenerator
-}
+func newImageDNAMutation() (*operators.AbstractMutation, error) {
+	// create and configure mutater with all mutation rates
+	mutater := &imageDNAMutater{}
 
-func newImageDNAMutation(options mutationOptions) (*operators.AbstractMutation, error) {
-	// set default mutation values
-	if options.addPolygonMutation == nil {
-		options.addPolygonMutation = number.NewConstantProbabilityGenerator(number.ProbabilityZero)
-	}
-	if options.removePolygonMutation == nil {
-		options.removePolygonMutation = number.NewConstantProbabilityGenerator(number.ProbabilityZero)
-	}
-	if options.swapPolygonsMutation == nil {
-		options.swapPolygonsMutation = number.NewConstantProbabilityGenerator(number.ProbabilityZero)
-	}
-	if options.changePolyColorMutation == nil {
-		options.changePolyColorMutation = number.NewConstantProbabilityGenerator(number.ProbabilityZero)
-	}
+	var (
+		prob number.Probability
+		err  error
+	)
 
-	mutater := &imageDNAMutater{options: options}
+	// set polygon mutations
+	if prob, err = number.NewProbability(appConfig.Mutation.Polygon.Add); err != nil {
+		return nil, fmt.Errorf("add-polygon mutation rate error: %v", err)
+	}
+	mutater.addPolygonMutation = number.NewConstantProbabilityGenerator(prob)
+
+	if prob, err = number.NewProbability(appConfig.Mutation.Polygon.Remove); err != nil {
+		return nil, fmt.Errorf("remove-polygon mutation rate error: %v", err)
+	}
+	mutater.removePolygonMutation = number.NewConstantProbabilityGenerator(prob)
+
+	if prob, err = number.NewProbability(appConfig.Mutation.Polygon.Swap); err != nil {
+		return nil, fmt.Errorf("swap-polygon mutation rate error: %v", err)
+	}
+	mutater.swapPolygonsMutation = number.NewConstantProbabilityGenerator(prob)
+
+	if prob, err = number.NewProbability(appConfig.Mutation.Polygon.Color); err != nil {
+		return nil, fmt.Errorf("change-polygon-color mutation rate error: %v", err)
+	}
+	mutater.changePolyColorMutation = number.NewConstantProbabilityGenerator(prob)
+
+	// set point mutations
+
 	impl, err := operators.NewAbstractMutation(mutater)
 	mutater.impl = impl
 	return impl, err
 }
 
 type imageDNAMutater struct {
-	impl    *operators.AbstractMutation
-	options mutationOptions
+	impl *operators.AbstractMutation
+
+	// polygon mutations
+	addPolygonMutation      number.ProbabilityGenerator
+	removePolygonMutation   number.ProbabilityGenerator
+	swapPolygonsMutation    number.ProbabilityGenerator
+	changePolyColorMutation number.ProbabilityGenerator
+
+	// point mutations
+	addPointMutation    number.ProbabilityGenerator
+	removePointMutation number.ProbabilityGenerator
 }
 
 func (op *imageDNAMutater) Mutate(c framework.Candidate, rng *rand.Rand) framework.Candidate {
@@ -49,19 +68,19 @@ func (op *imageDNAMutater) Mutate(c framework.Candidate, rng *rand.Rand) framewo
 
 	// image-level mutations
 
-	if op.options.addPolygonMutation.NextValue().NextEvent(rng) {
+	if op.addPolygonMutation.NextValue().NextEvent(rng) {
 		// add a new random polygon
 		img.polys = append(img.polys,
 			randomPoly(img, appConfig.Polygon.MinPoints, appConfig.Polygon.MaxPoints, rng))
 	}
 
-	if op.options.removePolygonMutation.NextValue().NextEvent(rng) {
+	if op.removePolygonMutation.NextValue().NextEvent(rng) {
 		// remove random polygon
 		idx := rng.Intn(len(img.polys))
 		img.polys = append(img.polys[:idx], img.polys[idx+1:]...)
 	}
 
-	if op.options.swapPolygonsMutation.NextValue().NextEvent(rng) {
+	if op.swapPolygonsMutation.NextValue().NextEvent(rng) {
 		// swap 2 random polygons
 		idx1, idx2 := rng.Intn(len(img.polys)), rng.Intn(len(img.polys))
 		img.polys[idx1], img.polys[idx2] = img.polys[idx2], img.polys[idx1]
@@ -72,9 +91,12 @@ func (op *imageDNAMutater) Mutate(c framework.Candidate, rng *rand.Rand) framewo
 	for i := 0; i < len(img.polys); i++ {
 		poly := &img.polys[i]
 
-		if op.options.changePolyColorMutation.NextValue().NextEvent(rng) {
+		if op.changePolyColorMutation.NextValue().NextEvent(rng) {
 			// change poly color
-			evolveColor(&poly.col, rng)
+			// TODO: which is best? try to evolve current color or start with a
+			// random one
+			poly.col = randomColor(rng)
+			//evolveColor(&poly.col, rng)
 		}
 	}
 

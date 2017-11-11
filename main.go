@@ -12,8 +12,6 @@ import (
 
 	"github.com/aurelien-rainone/evolve"
 	"github.com/aurelien-rainone/evolve/framework"
-	"github.com/aurelien-rainone/evolve/number"
-	"github.com/aurelien-rainone/evolve/operators"
 	"github.com/aurelien-rainone/evolve/selection"
 	"github.com/aurelien-rainone/evolve/termination"
 )
@@ -60,41 +58,6 @@ func convertToRGBA(img image.Image) *image.RGBA {
 	return rgba
 }
 
-func configureMutation() (*operators.AbstractMutation, error) {
-	opt := mutationOptions{}
-
-	var (
-		prob number.Probability
-		err  error
-	)
-
-	if prob, err = number.NewProbability(appConfig.Mutation.Polygon.Add); err != nil {
-		return nil, fmt.Errorf("add-polygon mutation rate error: %v", err)
-	}
-	opt.addPolygonMutation = number.NewConstantProbabilityGenerator(prob)
-
-	if prob, err = number.NewProbability(appConfig.Mutation.Polygon.Remove); err != nil {
-		return nil, fmt.Errorf("remove-polygon mutation rate error: %v", err)
-	}
-	opt.removePolygonMutation = number.NewConstantProbabilityGenerator(prob)
-
-	if prob, err = number.NewProbability(appConfig.Mutation.Polygon.Swap); err != nil {
-		return nil, fmt.Errorf("swap-polygon mutation rate error: %v", err)
-	}
-	opt.swapPolygonsMutation = number.NewConstantProbabilityGenerator(prob)
-
-	if prob, err = number.NewProbability(appConfig.Mutation.Polygon.Color); err != nil {
-		return nil, fmt.Errorf("change-polygon-color mutation rate error: %v", err)
-	}
-	opt.changePolyColorMutation = number.NewConstantProbabilityGenerator(prob)
-
-	mutation, err := newImageDNAMutation(opt)
-	if err != nil {
-		return nil, fmt.Errorf("couldn't create image dna mutation: %v", err)
-	}
-	return mutation, nil
-}
-
 func evolveImage(img *image.RGBA) error {
 	// pseudo random number generator
 	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -106,7 +69,7 @@ func evolveImage(img *image.RGBA) error {
 	}
 
 	// mutation settings
-	mutation, err := configureMutation()
+	mutation, err := newImageDNAMutation()
 	if err != nil {
 		return err
 	}

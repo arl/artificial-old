@@ -76,15 +76,20 @@ func (op *imageDNAMutater) Mutate(c framework.Candidate, rng *rand.Rand) framewo
 	img := c.(*imageDNA).clone()
 
 	if op.addPolygonMutation.NextValue().NextEvent(rng) {
-		// add a new random polygon
-		img.polys = append(img.polys,
-			randomPoly(img, appConfig.Polygon.MinPoints, appConfig.Polygon.MaxPoints, rng))
+		if len(img.polys) < appConfig.Image.MaxPolys {
+			// add a new random polygon
+			img.polys = append(img.polys,
+				randomPoly(img, appConfig.Polygon.MinPoints, appConfig.Polygon.MaxPoints, rng))
+		}
 	}
 
 	if op.removePolygonMutation.NextValue().NextEvent(rng) {
-		// remove random polygon
-		idx := rng.Intn(len(img.polys))
-		img.polys = append(img.polys[:idx], img.polys[idx+1:]...)
+		if len(img.polys) > appConfig.Image.MinPolys {
+			// find removal index
+			idx := rng.Intn(len(img.polys))
+			// split slice before and after, and append those 2 parts together
+			img.polys = append(img.polys[:idx], img.polys[idx+1:]...)
+		}
 	}
 
 	if op.swapPolygonsMutation.NextValue().NextEvent(rng) {

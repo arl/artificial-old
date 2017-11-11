@@ -11,6 +11,13 @@ var appConfig = struct {
 	// path to the reference image
 	RefImage string
 
+	Image struct {
+		// MinPolys is the minimum number of polygon in an image
+		MinPolys int `required:"true"`
+		// MaxPolys is the minimum number of polygon in an image
+		MaxPolys int `required:"true"`
+	}
+
 	Polygon struct {
 		// MinPoints is the minimum number of points in a polygon
 		MinPoints int `required:"true"`

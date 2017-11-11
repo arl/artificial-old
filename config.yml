@@ -1,5 +1,9 @@
 refimage: 
 
+image:
+    minpolys: 20
+    maxpolys: 60
+
 polygon:
     minpoints: 3
     maxpoints: 10

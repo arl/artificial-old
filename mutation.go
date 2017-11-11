@@ -100,7 +100,6 @@ func (op *imageDNAMutater) Mutate(c framework.Candidate, rng *rand.Rand) framewo
 
 	for i := 0; i < len(img.polys); i++ {
 		poly := &img.polys[i]
-		numPts := len(poly.pts)
 
 		if op.changePolyColorMutation.NextValue().NextEvent(rng) {
 			// change poly color
@@ -111,11 +110,22 @@ func (op *imageDNAMutater) Mutate(c framework.Candidate, rng *rand.Rand) framewo
 		}
 
 		if op.addPointMutation.NextValue().NextEvent(rng) {
+			numPts := len(poly.pts)
 			if numPts < appConfig.Polygon.MaxPoints {
 				// find insertion index
 				idx := 1 + rng.Intn(numPts-1)
 				// insert point at the middle of prev and next points
 				poly.insert(idx, poly.pts[idx-1].Add(poly.pts[idx]).Div(2))
+			}
+		}
+
+		if op.removePointMutation.NextValue().NextEvent(rng) {
+			numPts := len(poly.pts)
+			if numPts > appConfig.Polygon.MinPoints {
+				// find removal index
+				idx := rng.Intn(numPts)
+				// split slice before and after, and append those 2 parts together
+				poly.pts = append(poly.pts[:idx], poly.pts[idx+1:]...)
 			}
 		}
 	}

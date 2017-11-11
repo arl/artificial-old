@@ -74,9 +74,39 @@ func (op *imageDNAMutater) Mutate(c framework.Candidate, rng *rand.Rand) framewo
 
 		if op.options.changePolyColorMutation.NextValue().NextEvent(rng) {
 			// change poly color
+			evolveColor(&poly.col, rng)
 		}
 	}
 
 	// returns cloned image, possibily mutated
 	return img
+}
+
+const (
+	// max percentage of decrease/increase in value of a color component
+	maxByteEvolutionPercent = 10
+	maxByteEvolution        = math.MaxUint8 / maxByteEvolutionPercent
+)
+
+func evolveColor(c *color.RGBA, rng *rand.Rand) {
+	evolveByte := func(b byte) byte {
+		// max byte value
+		var maxVal byte = math.MaxUint8
+		if b < math.MaxUint8-maxByteEvolution {
+			maxVal = b + maxByteEvolution
+		}
+
+		// min byte value
+		var minVal byte = 0
+		if b > maxByteEvolution {
+			minVal = b - maxByteEvolution
+		}
+		return minVal + byte(rng.Intn(int(maxVal-minVal)))
+	}
+
+	// we want each color component to get +/- 10% than their current value
+	c.R = evolveByte(c.R)
+	c.G = evolveByte(c.G)
+	c.B = evolveByte(c.B)
+	c.A = evolveByte(c.A)
 }

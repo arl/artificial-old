@@ -9,7 +9,7 @@ import (
 
 var appConfig = struct {
 	// path to the reference image
-	RefImage string `required:"true"`
+	RefImage string
 
 	Polygon struct {
 		// MinPoints is the minimum number of points in a polygon
@@ -34,11 +34,15 @@ var appConfig = struct {
 
 func readConfig() error {
 	configFile := flag.String("cfg", "config.yml", "configuration file")
+	refImage := flag.String("img", "", "reference image (PNG)")
 	flag.Parse()
 	err := cfg.Load(&appConfig, *configFile)
 	if err != nil {
 		return fmt.Errorf("read config error: %v", err)
 	}
 	fmt.Println(appConfig)
+	if len(*refImage) > 0 {
+		appConfig.RefImage = *refImage
+	}
 	return nil
 }

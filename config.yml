@@ -10,7 +10,10 @@ polygon:
 
 mutation:
     polygon:
-        add: 0.1
-        remove: 0.1
-        swap: 0.1
-        color: 0.1
+        add: 0.05
+        remove: 0.05
+        swap: 0.05
+        color: 0.05
+    point:
+        add: 0.05
+        remove: 0.05

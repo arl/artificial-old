@@ -41,6 +41,8 @@ var appConfig = struct {
 			Add float64 `required:"true"`
 			// Rate [0, 1] of remove point mutation
 			Remove float64 `required:"true"`
+			// Rate [0, 1] of move point mutation
+			Move float64 `required:"true"`
 		}
 	}
 }{}

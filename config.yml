@@ -17,3 +17,4 @@ mutation:
     point:
         add: 0.05
         remove: 0.05
+        move: 0.01

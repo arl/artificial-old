@@ -52,6 +52,11 @@ func newImageDNAMutation() (*operators.AbstractMutation, error) {
 	}
 	mutater.removePointMutation = number.NewConstantProbabilityGenerator(prob)
 
+	if prob, err = number.NewProbability(appConfig.Mutation.Point.Move); err != nil {
+		return nil, fmt.Errorf("move-point mutation rate error: %v", err)
+	}
+	mutater.movePointMutation = number.NewConstantProbabilityGenerator(prob)
+
 	impl, err := operators.NewAbstractMutation(mutater)
 	mutater.impl = impl
 	return impl, err
@@ -69,6 +74,7 @@ type imageDNAMutater struct {
 	// point mutations
 	addPointMutation    number.ProbabilityGenerator
 	removePointMutation number.ProbabilityGenerator
+	movePointMutation   number.ProbabilityGenerator
 }
 
 func (op *imageDNAMutater) Mutate(c framework.Candidate, rng *rand.Rand) framework.Candidate {
@@ -126,6 +132,23 @@ func (op *imageDNAMutater) Mutate(c framework.Candidate, rng *rand.Rand) framewo
 				idx := rng.Intn(numPts)
 				// split slice before and after, and append those 2 parts together
 				poly.pts = append(poly.pts[:idx], poly.pts[idx+1:]...)
+			}
+		}
+
+		if op.removePointMutation.NextValue().NextEvent(rng) {
+			numPts := len(poly.pts)
+			if numPts > appConfig.Polygon.MinPoints {
+				// find removal index
+				idx := rng.Intn(numPts)
+				// split slice before and after, and append those 2 parts together
+				poly.pts = append(poly.pts[:idx], poly.pts[idx+1:]...)
+			}
+		}
+
+		for j := 0; j < len(poly.pts); j++ {
+			//pt := &poly.pts[j]
+			if op.movePointMutation.NextValue().NextEvent(rng) {
+				poly.pts[j] = randomPoint(img, rng)
 			}
 		}
 	}

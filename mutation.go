@@ -148,7 +148,8 @@ func (op *imageDNAMutater) Mutate(c framework.Candidate, rng *rand.Rand) framewo
 		for j := 0; j < len(poly.pts); j++ {
 			//pt := &poly.pts[j]
 			if op.movePointMutation.NextValue().NextEvent(rng) {
-				poly.pts[j] = randomPoint(img, rng)
+				// TODO: compute margin
+				poly.pts[j] = randomPoint(img, 10, rng)
 			}
 		}
 	}

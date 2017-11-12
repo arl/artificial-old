@@ -5,7 +5,7 @@ import (
 	"image/color"
 	"math/rand"
 
-	"github.com/llgcode/draw2d/draw2dimg"
+	"github.com/fogleman/gg"
 )
 
 // poly represents a polygon of the image
@@ -45,27 +45,33 @@ func (img *imageDNA) clone() *imageDNA {
 
 func (img *imageDNA) render() *image.RGBA {
 	// Initialize the graphic context on an RGBA image
-	dest := image.NewRGBA(image.Rect(0, 0, img.w, img.h))
-	gc := draw2dimg.NewGraphicContext(dest)
-	gc.SetLineWidth(1)
+	dst := image.NewRGBA(image.Rect(0, 0, img.w, img.h))
+	dc := gg.NewContextForRGBA(dst)
+
+	// fill background
+	dc.MoveTo(0, 0)
+	dc.LineTo(float64(dst.Bounds().Dx()), 0)
+	dc.LineTo(float64(dst.Bounds().Dx()), float64(dst.Bounds().Dy()))
+	dc.LineTo(0, float64(dst.Bounds().Dy()))
+	dc.SetFillStyle(gg.NewSolidPattern(color.Black))
+	dc.Fill()
 
 	for i := 0; i < len(img.polys); i++ {
+		dc.ClearPath()
 		poly := img.polys[i]
-		// set brush color
-		gc.SetFillColor(poly.col)
-		gc.SetStrokeColor(poly.col)
+		dc.MoveTo(float64(poly.pts[0].X), float64(poly.pts[0].Y))
 
 		// draw polygon as a closed path
-		gc.MoveTo(float64(poly.pts[0].X), float64(poly.pts[0].Y))
 		for j := 1; j < len(poly.pts); j++ {
 			pt := poly.pts[j]
-			gc.LineTo(float64(pt.X), float64(pt.Y))
+			dc.LineTo(float64(pt.X), float64(pt.Y))
 		}
-		gc.SetLineWidth(0)
-		gc.Close()
-		gc.FillStroke()
+		// set fill brush
+		dc.SetFillStyle(gg.NewSolidPattern(poly.col))
+		// Fill implicitely closes the path
+		dc.Fill()
 	}
-	return dest
+	return dst
 }
 
 // randomPoint creates and returns a random polygon made of points in the image,

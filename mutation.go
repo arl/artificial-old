@@ -20,38 +20,39 @@ func newImageDNAMutation() (*operators.AbstractMutation, error) {
 		err  error
 	)
 
-	// set polygon mutations
-	if prob, err = number.NewProbability(appConfig.Mutation.Polygon.Add); err != nil {
+	// set image-level mutations
+	if prob, err = number.NewProbability(appConfig.Mutation.Image.AddPoly); err != nil {
 		return nil, fmt.Errorf("add-polygon mutation rate error: %v", err)
 	}
 	mutater.addPolygonMutation = number.NewConstantProbabilityGenerator(prob)
 
-	if prob, err = number.NewProbability(appConfig.Mutation.Polygon.Remove); err != nil {
+	if prob, err = number.NewProbability(appConfig.Mutation.Image.RemovePoly); err != nil {
 		return nil, fmt.Errorf("remove-polygon mutation rate error: %v", err)
 	}
 	mutater.removePolygonMutation = number.NewConstantProbabilityGenerator(prob)
 
-	if prob, err = number.NewProbability(appConfig.Mutation.Polygon.Swap); err != nil {
+	if prob, err = number.NewProbability(appConfig.Mutation.Image.SwapPolys); err != nil {
 		return nil, fmt.Errorf("swap-polygon mutation rate error: %v", err)
 	}
 	mutater.swapPolygonsMutation = number.NewConstantProbabilityGenerator(prob)
 
-	if prob, err = number.NewProbability(appConfig.Mutation.Polygon.Color); err != nil {
-		return nil, fmt.Errorf("change-polygon-color mutation rate error: %v", err)
-	}
-	mutater.changePolyColorMutation = number.NewConstantProbabilityGenerator(prob)
-
-	// set point mutations
-	if prob, err = number.NewProbability(appConfig.Mutation.Point.Add); err != nil {
+	// set polygon-level mutations
+	if prob, err = number.NewProbability(appConfig.Mutation.Polygon.AddPoint); err != nil {
 		return nil, fmt.Errorf("add-point mutation rate error: %v", err)
 	}
 	mutater.addPointMutation = number.NewConstantProbabilityGenerator(prob)
 
-	if prob, err = number.NewProbability(appConfig.Mutation.Point.Remove); err != nil {
+	if prob, err = number.NewProbability(appConfig.Mutation.Polygon.RemovePoint); err != nil {
 		return nil, fmt.Errorf("remove-point mutation rate error: %v", err)
 	}
 	mutater.removePointMutation = number.NewConstantProbabilityGenerator(prob)
 
+	if prob, err = number.NewProbability(appConfig.Mutation.Polygon.ChangeColor); err != nil {
+		return nil, fmt.Errorf("change-polygon-color mutation rate error: %v", err)
+	}
+	mutater.changePolyColorMutation = number.NewConstantProbabilityGenerator(prob)
+
+	// set point-level mutations
 	if prob, err = number.NewProbability(appConfig.Mutation.Point.Move); err != nil {
 		return nil, fmt.Errorf("move-point mutation rate error: %v", err)
 	}

@@ -9,12 +9,13 @@ polygon:
     maxpoints: 10
 
 mutation:
+    image:
+        addpoly: 0.05
+        removepoly: 0.05
+        swappolys: 0.05
     polygon:
-        add: 0.05
-        remove: 0.05
-        swap: 0.05
-        color: 0.05
+        addpoint: 0.05
+        removepoint: 0.05
+        changecolor: 0.05
     point:
-        add: 0.05
-        remove: 0.05
-        move: 0.01
+        move: 0.000000000000001

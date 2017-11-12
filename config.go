@@ -21,26 +21,33 @@ var appConfig = struct {
 	Polygon struct {
 		// MinPoints is the minimum number of points in a polygon
 		MinPoints int `required:"true"`
-		// MaxPoints is the minimum number of points in a polygon
+		// MaxPoints is the maximum number of points in a polygon
 		MaxPoints int `required:"true"`
 	}
 
 	Mutation struct {
-		Polygon struct {
+		// image level mutations
+		Image struct {
 			// Rate [0, 1] of add polygon mutation
-			Add float64 `required:"true"`
+			AddPoly float64 `required:"true"`
 			// Rate [0, 1] of remove polygon mutation
-			Remove float64 `required:"true"`
+			RemovePoly float64 `required:"true"`
 			// Rate [0, 1] of swap polygon mutation
-			Swap float64 `required:"true"`
-			// Rate [0, 1] of change polygon color mutation
-			Color float64 `required:"true"`
+			SwapPolys float64 `required:"true"`
 		}
-		Point struct {
+
+		// polygon level mutations
+		Polygon struct {
 			// Rate [0, 1] of add point mutation
-			Add float64 `required:"true"`
+			AddPoint float64 `required:"true"`
 			// Rate [0, 1] of remove point mutation
-			Remove float64 `required:"true"`
+			RemovePoint float64 `required:"true"`
+			// Rate [0, 1] of change polygon color mutation
+			ChangeColor float64 `required:"true"`
+		}
+
+		// point level mutations
+		Point struct {
 			// Rate [0, 1] of move point mutation
 			Move float64 `required:"true"`
 		}

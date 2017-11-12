@@ -11,6 +11,13 @@ var appConfig = struct {
 	// path to the reference image
 	RefImage string
 
+	Population struct {
+		// number of individuals in the population
+		NumIndividuals int `required:"true"`
+		// number of candidates preserved through elitism
+		EliteCount int `required:"true"`
+	}
+
 	Image struct {
 		// MinPolys is the minimum number of polygon in an image
 		MinPolys int `required:"true"`

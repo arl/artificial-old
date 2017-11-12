@@ -1,5 +1,9 @@
 refimage: 
 
+population:
+    numindividuals: 10
+    elitecount: 2
+
 image:
     minpolys: 20
     maxpolys: 60

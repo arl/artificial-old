@@ -90,7 +90,10 @@ func evolveImage(img *image.RGBA) error {
 	engine.AddEvolutionObserver(&obs)
 
 	go func() {
-		result := engine.Evolve(2, 1, termination.NewTargetFitness(0, false))
+		result := engine.Evolve(
+			appConfig.Population.NumIndividuals,
+			appConfig.Population.EliteCount,
+			termination.NewTargetFitness(0, false))
 		fmt.Println("Evolution ended...", result)
 	}()
 

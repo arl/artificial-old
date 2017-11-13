@@ -40,6 +40,7 @@ func (g *imageDNAGenerator) GenerateRandomCandidate(rng *rand.Rand) framework.Ca
 		w:     g.imgW,
 		h:     g.imgH,
 		polys: make([]poly, numPolys),
+		bck:   randomColorNoAlpha(rng),
 	}
 	// add N `numPolys` random polygons
 	for i := 0; i < numPolys; i++ {

@@ -41,6 +41,8 @@ var appConfig = struct {
 			RemovePoly float64 `required:"true"`
 			// Rate [0, 1] of swap polygon mutation
 			SwapPolys float64 `required:"true"`
+			// Rate [0, 1] of background color mutation
+			BackgroundColor float64 `required:"true"`
 		}
 
 		// polygon level mutations

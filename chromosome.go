@@ -30,7 +30,6 @@ func (p *poly) insert(idx int, pt image.Point) {
 type imageDNA struct {
 	w, h  int
 	polys []poly
-	bck   color.RGBA // background color
 }
 
 // clone returns a new imageDNA that is an exact copy of the receiver
@@ -44,21 +43,14 @@ func (img *imageDNA) clone() *imageDNA {
 		copy(poly.pts, p.pts)
 		polys[i] = poly
 	}
-	return &imageDNA{polys: polys, w: img.w, h: img.h, bck: img.bck}
+	return &imageDNA{polys: polys, w: img.w, h: img.h}
 }
 
 func (img *imageDNA) render() *image.RGBA {
 	// Initialize the graphic context on an RGBA image
 	dst := image.NewRGBA(image.Rect(0, 0, img.w, img.h))
 	dc := gg.NewContextForRGBA(dst)
-
-	// fill background
-	dc.MoveTo(0, 0)
-	dc.LineTo(float64(dst.Bounds().Dx()), 0)
-	dc.LineTo(float64(dst.Bounds().Dx()), float64(dst.Bounds().Dy()))
-	dc.LineTo(0, float64(dst.Bounds().Dy()))
-	dc.SetFillStyle(gg.NewSolidPattern(img.bck))
-	dc.Fill()
+	dc.SetLineWidth(0)
 
 	for i := 0; i < len(img.polys); i++ {
 		dc.ClearPath()
@@ -119,16 +111,6 @@ func randomColor(rng *rand.Rand) color.RGBA {
 		G: byte(rng.Intn(255)),
 		B: byte(rng.Intn(255)),
 		A: byte(10 + rng.Intn(50)),
-	}
-}
-
-// randomPointNoAlpha returns a random opaque RGBA color
-func randomColorNoAlpha(rng *rand.Rand) color.RGBA {
-	return color.RGBA{
-		R: byte(rng.Intn(255)),
-		G: byte(rng.Intn(255)),
-		B: byte(rng.Intn(255)),
-		A: byte(255),
 	}
 }
 

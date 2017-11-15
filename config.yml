@@ -17,7 +17,6 @@ mutation:
         addpoly: 0.05
         removepoly: 0.05
         swappolys: 0.05
-        backgroundcolor: 0.05
     polygon:
         addpoint: 0.05
         removepoint: 0.05

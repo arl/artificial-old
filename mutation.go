@@ -36,11 +36,6 @@ func newImageDNAMutation() (*operators.AbstractMutation, error) {
 	}
 	mutater.swapPolygonsMutation = number.NewConstantProbabilityGenerator(prob)
 
-	if prob, err = number.NewProbability(appConfig.Mutation.Image.BackgroundColor); err != nil {
-		return nil, fmt.Errorf("background-color mutation rate error: %v", err)
-	}
-	mutater.backgroundColorMutation = number.NewConstantProbabilityGenerator(prob)
-
 	// set polygon-level mutations
 	if prob, err = number.NewProbability(appConfig.Mutation.Polygon.AddPoint); err != nil {
 		return nil, fmt.Errorf("add-point mutation rate error: %v", err)
@@ -111,10 +106,6 @@ func (op *imageDNAMutater) Mutate(c framework.Candidate, rng *rand.Rand) framewo
 		// swap 2 random polygons
 		idx1, idx2 := rng.Intn(len(img.polys)), rng.Intn(len(img.polys))
 		img.polys[idx1], img.polys[idx2] = img.polys[idx2], img.polys[idx1]
-	}
-
-	if op.backgroundColorMutation.NextValue().NextEvent(rng) {
-		img.bck = randomColorNoAlpha(rng)
 	}
 
 	for i := 0; i < len(img.polys); i++ {

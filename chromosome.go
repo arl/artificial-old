@@ -13,7 +13,7 @@ import (
 
 // poly represents a polygon of the image
 type poly struct {
-	col color.RGBA
+	col color.Color
 	pts []image.Point
 }
 
@@ -55,6 +55,7 @@ func (img *imageDNA) render() *image.RGBA {
 	for i := 0; i < len(img.polys); i++ {
 		dc.ClearPath()
 		poly := img.polys[i]
+		dc.SetColor(poly.col)
 		dc.MoveTo(float64(poly.pts[0].X), float64(poly.pts[0].Y))
 
 		// draw polygon as a closed path
@@ -62,9 +63,7 @@ func (img *imageDNA) render() *image.RGBA {
 			pt := poly.pts[j]
 			dc.LineTo(float64(pt.X), float64(pt.Y))
 		}
-		// set fill brush
-		dc.SetFillStyle(gg.NewSolidPattern(poly.col))
-		// Fill implicitely closes the path
+		// set fill and close path
 		dc.Fill()
 	}
 	return dst
@@ -104,9 +103,9 @@ func randomPoint(img *imageDNA, margin int, rng *rand.Rand) image.Point {
 	}
 }
 
-// randomPoint returns a random RGBA color
-func randomColor(rng *rand.Rand) color.RGBA {
-	return color.RGBA{
+// randomPoint returns a random color
+func randomColor(rng *rand.Rand) color.Color {
+	return color.NRGBA{
 		R: byte(rng.Intn(255)),
 		G: byte(rng.Intn(255)),
 		B: byte(rng.Intn(255)),

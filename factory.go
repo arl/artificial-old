@@ -33,7 +33,12 @@ type imageDNAGenerator struct {
 }
 
 func (g *imageDNAGenerator) GenerateRandomCandidate(rng *rand.Rand) framework.Candidate {
-	numPolys := appConfig.Polygon.MinPoints + rng.Intn(appConfig.Polygon.MaxPoints-appConfig.Polygon.MinPoints)
+	var numPolys int
+	if appConfig.Image.MinPolys == appConfig.Image.MaxPolys {
+		numPolys = appConfig.Image.MaxPolys
+	} else {
+		numPolys = appConfig.Image.MinPolys + rng.Intn(appConfig.Image.MaxPolys-appConfig.Image.MinPolys)
+	}
 
 	// create image dna with same dimensions than reference image
 	var img = &imageDNA{

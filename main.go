@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"image"
 	"image/png"
-	"log"
 	"math/rand"
 	"os"
 	"os/signal"
@@ -27,13 +26,22 @@ func main() {
 	check(err)
 
 	fmt.Println("Reference image:", appConfig.RefImage)
-	f, err := os.Open(appConfig.RefImage)
+	f1, err := os.Open(appConfig.RefImage)
 	check(err)
-	defer f.Close()
+	defer f1.Close()
 
-	img, err := png.Decode(f)
+	img, err := png.Decode(f1)
 	check(err)
-	check(evolveImage(convertToRGBA(img)))
+	bestImg, err := evolveImage(convertToRGBA(img))
+	check(err)
+
+	// save best candidate
+	f2, err := os.Create("best.png")
+	if err != nil {
+		panic(err)
+	}
+	defer f2.Close()
+	png.Encode(f2, bestImg)
 }
 
 // convert any image.Image into *image.RGBA
@@ -58,24 +66,27 @@ func convertToRGBA(img image.Image) *image.RGBA {
 	return rgba
 }
 
-func evolveImage(img *image.RGBA) error {
+func evolveImage(img *image.RGBA) (image.Image, error) {
 	// pseudo random number generator
 	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	// chromosome/image factory
 	DNAFactory, err := newImageDNAfactory(img.Bounds().Dx(), img.Bounds().Dy())
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
 	// mutation settings
 	mutation, err := newImageDNAMutation()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// define a selection strategy
-	var selectionStrategy = &selection.RouletteWheelSelection{}
+	selectionStrategy, err := selection.NewTruncationSelection(selection.WithConstantSelectionRatio(0.1))
+	if err != nil {
+		return nil, err
+	}
 
 	// define a fitness evaluator
 	evaluator := &fitnessEvaluator{img}
@@ -86,44 +97,60 @@ func evolveImage(img *image.RGBA) error {
 		selectionStrategy,
 		rng)
 
-	var obs observer
-	engine.AddEvolutionObserver(&obs)
+	// define termination conditions
+	userAbort := termination.NewUserAbort()
+	targetFitness := termination.NewTargetFitness(0, false)
+
+	// define evolution observers
+	bestObs, err := newBestObserver(100)
+	if err != nil {
+		return nil, err
+	}
+	engine.AddEvolutionObserver(bestObs)
+
 
 	go func() {
-		result := engine.Evolve(
-			appConfig.Population.NumIndividuals,
-			appConfig.Population.EliteCount,
-			termination.NewTargetFitness(0, false))
-		fmt.Println("Evolution ended...", result)
+		// handle user termination
+		sigchan := make(chan os.Signal, 1)
+		signal.Notify(sigchan, os.Interrupt)
+		<-sigchan
+		userAbort.Abort()
 	}()
 
-	// handle termination
-	sigchan := make(chan os.Signal, 1)
-	signal.Notify(sigchan, os.Interrupt)
-	<-sigchan
-	log.Println("Evolution interrupted!")
+	best := engine.Evolve(
+		appConfig.Population.NumIndividuals,
+		appConfig.Population.EliteCount,
+		userAbort, targetFitness)
 
-	// save best candidate
-	f, err := os.Create("best.png")
+	satisfied, err := engine.SatisfiedTerminationConditions()
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-	defer f.Close()
-	fmt.Println(obs.best)
-	png.Encode(f, obs.best.render())
+	fmt.Println("Evolution ended...")
+	for _, cond := range satisfied {
+		fmt.Println(cond)
+	}
 
-	// do last actions and wait for all write operations to end
-	os.Exit(0)
-	return nil
+	fmt.Println(best)
+	return best.(*imageDNA).render(), nil
 }
 
-type observer struct {
-	best *imageDNA
+type bestObserver struct {
+	frequency int // print statistics every N generations
 }
 
-func (o *observer) PopulationUpdate(data *framework.PopulationData) {
-	dna := data.BestCandidate().(*imageDNA)
-	//o.best = dna.clone()
-	o.best = dna
-	fmt.Printf("Generation %d: (%v)\n", data.GenerationNumber(), data.BestCandidateFitness())
+func newBestObserver(frequency int) (o *bestObserver, err error) {
+	if frequency == 0 {
+		return nil, fmt.Errorf("bessObserver frequency can't be 0")
+	}
+	return &bestObserver{frequency: frequency}, nil
+}
+
+func (o *bestObserver) PopulationUpdate(data *framework.PopulationData) {
+	genNum := data.GenerationNumber()
+	if genNum%o.frequency == 0 {
+		// update best candidate
+		fmt.Printf("Generation %d: best: %.2f mean: %.2f stddev: %.2f\n",
+			data.GenerationNumber(), data.BestCandidateFitness(), data.MeanFitness(), data.FitnessStandardDeviation())
+	}
 }

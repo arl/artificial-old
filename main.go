@@ -5,9 +5,11 @@ import (
 	"image"
 	"image/png"
 	"io/ioutil"
+	"log"
 	"math/rand"
 	"os"
 	"os/signal"
+	"path"
 	"time"
 
 	"github.com/aurelien-rainone/evolve"
@@ -26,22 +28,28 @@ func main() {
 	check(err)
 
 	fmt.Println("Reference image:", appConfig.RefImage)
-	f1, err := os.Open(appConfig.RefImage)
+	f, err := os.Open(appConfig.RefImage)
 	check(err)
-	defer f1.Close()
+	defer f.Close()
 
-	img, err := png.Decode(f1)
+	img, err := png.Decode(f)
 	check(err)
 	bestImg, err := evolveImage(convertToRGBA(img))
 	check(err)
 
 	// save best candidate
-	f2, err := os.Create("best.png")
+	err = saveToPng("best.png", bestImg)
+	check(err)
+}
+
+func saveToPng(fn string, img image.Image) error {
+	f, err := os.Create(fn)
 	if err != nil {
-		panic(err)
+		return err
 	}
-	defer f2.Close()
-	png.Encode(f2, bestImg)
+	defer f.Close()
+	png.Encode(f, img)
+	return nil
 }
 
 // convert any image.Image into *image.RGBA
@@ -101,24 +109,29 @@ func evolveImage(img *image.RGBA) (image.Image, error) {
 	userAbort := termination.NewUserAbort()
 	targetFitness := termination.NewTargetFitness(0, false)
 
+	// define output directory for saves images and generations database
+	outDir, err := ioutil.TempDir("_output", "")
+	if err != nil {
+		return nil, fmt.Errorf("output directory error:, %v", err)
+	}
+	log.Println("ouput directory:", outDir)
+
 	// define evolution observers
-	bestObs, err := newBestObserver(100)
+	bestObs, err := newBestObserver(100, outDir)
 	if err != nil {
 		return nil, err
 	}
 	engine.AddEvolutionObserver(bestObs)
 
-	// output directory
-	dir, err := ioutil.TempDir("_output", "")
-	if err != nil {
-		return nil, fmt.Errorf("output directory error:, %v", err)
-	}
-	sqliteObs, err := newSqliteObserver(100, dir)
+	sqliteObs, err := newSqliteObserver(100, outDir)
 	if err != nil {
 		return nil, err
 	}
 	defer sqliteObs.close()
 	engine.AddEvolutionObserver(sqliteObs)
+
+	// save a copy of refernce image in output dir
+	saveToPng(path.Join(outDir, "_ref.png"), img)
 
 	go func() {
 		// handle user termination

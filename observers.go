@@ -103,21 +103,25 @@ func (o *sqliteObserver) close() {
 }
 
 type bestObserver struct {
-	freq int // print statistics every N generations
+	freq   int    // print statistics every N generations
+	outDir string // output directory
 }
 
-func newBestObserver(freq int) (o *bestObserver, err error) {
+func newBestObserver(freq int, outDir string) (o *bestObserver, err error) {
 	if freq == 0 {
 		return nil, fmt.Errorf("bessObserver frequency can't be 0")
 	}
-	return &bestObserver{freq: freq}, nil
+	return &bestObserver{freq: freq, outDir: outDir}, nil
 }
 
 func (o *bestObserver) PopulationUpdate(data *framework.PopulationData) {
-	genNum := data.GenerationNumber()
-	if genNum%o.freq == 0 {
+	generation := data.GenerationNumber()
+	if generation%o.freq == 0 {
 		// update best candidate
-		fmt.Printf("Generation %d: best: %.2f mean: %.2f stddev: %.2f\n",
+		log.Printf("Generation %d: best: %.2f mean: %.2f stddev: %.2f\n",
 			data.GenerationNumber(), data.BestCandidateFitness(), data.MeanFitness(), data.FitnessStandardDeviation())
+		saveToPng(
+			path.Join(o.outDir, fmt.Sprintf("%d.png", generation)),
+			data.BestCandidate().(*imageDNA).render())
 	}
 }

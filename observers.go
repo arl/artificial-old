@@ -54,7 +54,7 @@ func newSqliteObserver(freq int, outDir string) (o *sqliteObserver, err error) {
 	//_, err = o.db.Exec(sqlStmt)
 	_, err = o.conn.ExecContext(context.TODO(), sqlStmt)
 	if err != nil {
-		return nil, fmt.Errorf("can't exec query: %q\n: %s\n", err, sqlStmt)
+		return nil, fmt.Errorf("can't exec query: %q: %s", err, sqlStmt)
 	}
 
 	return o, nil

@@ -141,4 +141,5 @@ func evolveImage(img *image.RGBA) (image.Image, error) {
 	for _, cond := range satisfied {
 		fmt.Println(cond)
 	}
+	return best.(*imageDNA).render(), nil
 }

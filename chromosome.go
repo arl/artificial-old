@@ -180,9 +180,9 @@ func generatePolygon(ctr image.Point, avgRadius, irregularity, spikeyness float6
 	angle := rng.Float64() * 2 * math.Pi
 	var x, y float64
 	for i := 0; i < numPts; i++ {
-		r_i := f64Clip(gauss.Gaussian(avgRadius, spikeyness), 0, 2*avgRadius)
-		x = float64(ctr.X) + r_i*math.Cos(angle)
-		y = float64(ctr.Y) + r_i*math.Sin(angle)
+		ri := f64Clip(gauss.Gaussian(avgRadius, spikeyness), 0, 2*avgRadius)
+		x = float64(ctr.X) + ri*math.Cos(angle)
+		y = float64(ctr.Y) + ri*math.Sin(angle)
 		points[i] = image.Pt(int(x), int(y))
 		angle = angle + angleSteps[i]
 	}

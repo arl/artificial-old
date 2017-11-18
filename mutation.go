@@ -177,7 +177,7 @@ func evolveColor(c *color.RGBA, rng *rand.Rand) {
 		}
 
 		// min byte value
-		var minVal byte = 0
+		var minVal byte
 		if b > maxByteEvolution {
 			minVal = b - maxByteEvolution
 		}

@@ -19,7 +19,7 @@ func newImageDNAfactory(imgW, imgH int) (*imageDNAfactory, error) {
 
 	sf := &imageDNAfactory{
 		factory.AbstractCandidateFactory{
-			&imageDNAGenerator{
+			RandomCandidateGenerator: &imageDNAGenerator{
 				imgW: imgW,
 				imgH: imgH,
 			},

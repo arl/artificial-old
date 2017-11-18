@@ -69,9 +69,8 @@ func (img *imageDNA) render() *image.RGBA {
 	return dst
 }
 
-// randomPoint creates and returns a random polygon made of points in the image,
-// with minPts < numPts < maxPts
-func randomPoly(img *imageDNA, minPts, maxPts int, rng *rand.Rand) poly {
+// randomSimplePoly creates and returns a random simple polygon.
+func randomSimplePoly(img *imageDNA, minPts, maxPts int, rng *rand.Rand) poly {
 	poly := poly{}
 
 	// create random number of points
@@ -88,6 +87,26 @@ func randomPoly(img *imageDNA, minPts, maxPts int, rng *rand.Rand) poly {
 	// use polygon generator
 	poly.pts = generatePolygon(center, float64(margin), 0.7, 0.5, numPts, rng)
 
+	// set random color
+	poly.col = randomColor(rng)
+	return poly
+}
+
+// randomPoly creates and returns a random polygon.
+func randomPoly(img *imageDNA, minPts, maxPts int, rng *rand.Rand) poly {
+	poly := poly{}
+	// create random number of points
+	var numPts int
+	if maxPts == minPts {
+		numPts = maxPts
+	} else {
+		numPts = minPts + rng.Intn(maxPts-minPts)
+	}
+	poly.pts = make([]image.Point, numPts)
+	for j := 0; j < numPts; j++ {
+		// each point is random
+		poly.pts[j] = randomPoint(img, 0, rng)
+	}
 	// set random color
 	poly.col = randomColor(rng)
 	return poly

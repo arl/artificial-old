@@ -1,25 +1,25 @@
-refimage: 
+#refimage:  "/path/to/ref/img.png"
 
 population:
-    numindividuals: 10
-    elitecount: 2
+    numindividuals: 5
+    elitecount: 1
 
 image:
-    minpolys: 20
-    maxpolys: 60
+    minpolys: 30
+    maxpolys: 50
 
 polygon:
     minpoints: 3
-    maxpoints: 10
+    maxpoints: 8
 
 mutation:
     image:
-        addpoly: 0.05
-        removepoly: 0.05
-        swappolys: 0.05
+        addpoly: 0.01
+        removepoly: 0.01
+        swappolys: 0.01
     polygon:
-        addpoint: 0.05
-        removepoint: 0.05
-        changecolor: 0.05
+        addpoint: 0.01
+        removepoint: 0.01
+        changecolor: 0.01
     point:
-        move: 0.000000000000001
+        move: 0.01

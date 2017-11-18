@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"image"
 	"image/png"
+	"io/ioutil"
 	"math/rand"
 	"os"
 	"os/signal"
 	"time"
 
 	"github.com/aurelien-rainone/evolve"
-	"github.com/aurelien-rainone/evolve/framework"
 	"github.com/aurelien-rainone/evolve/selection"
 	"github.com/aurelien-rainone/evolve/termination"
 )
@@ -108,6 +108,17 @@ func evolveImage(img *image.RGBA) (image.Image, error) {
 	}
 	engine.AddEvolutionObserver(bestObs)
 
+	// output directory
+	dir, err := ioutil.TempDir("_output", "")
+	if err != nil {
+		return nil, fmt.Errorf("output directory error:, %v", err)
+	}
+	sqliteObs, err := newSqliteObserver(100, dir)
+	if err != nil {
+		return nil, err
+	}
+	defer sqliteObs.close()
+	engine.AddEvolutionObserver(sqliteObs)
 
 	go func() {
 		// handle user termination
@@ -129,28 +140,5 @@ func evolveImage(img *image.RGBA) (image.Image, error) {
 	fmt.Println("Evolution ended...")
 	for _, cond := range satisfied {
 		fmt.Println(cond)
-	}
-
-	fmt.Println(best)
-	return best.(*imageDNA).render(), nil
-}
-
-type bestObserver struct {
-	frequency int // print statistics every N generations
-}
-
-func newBestObserver(frequency int) (o *bestObserver, err error) {
-	if frequency == 0 {
-		return nil, fmt.Errorf("bessObserver frequency can't be 0")
-	}
-	return &bestObserver{frequency: frequency}, nil
-}
-
-func (o *bestObserver) PopulationUpdate(data *framework.PopulationData) {
-	genNum := data.GenerationNumber()
-	if genNum%o.frequency == 0 {
-		// update best candidate
-		fmt.Printf("Generation %d: best: %.2f mean: %.2f stddev: %.2f\n",
-			data.GenerationNumber(), data.BestCandidateFitness(), data.MeanFitness(), data.FitnessStandardDeviation())
 	}
 }

@@ -5,6 +5,9 @@
 #include <QPixmap>
 #include <QSqlQuery>
 #include <QIODevice>
+#include <QLabel>
+
+#include <algorithm>
 
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
@@ -23,11 +26,20 @@ int maxGenerationNumber()
     return num;
 }
 
+QPixmap scalePixmapAspectRatio(QPixmap& pixmap, int w, int h)
+{
+    return pixmap.scaled(std::min(w, h), std::min(w, h), Qt::KeepAspectRatio);
+}
+
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+
+    ui->refImage->setMinimumSize(1, 1);
+    ui->curImage->setMinimumSize(1, 1);
+
     m_dbOpened = false;
     QObject::connect(&m_sock, static_cast<void(QLocalSocket::*)(QLocalSocket::LocalSocketError)>(&QLocalSocket::error),
         this, &MainWindow::onSockError);
@@ -37,7 +49,33 @@ MainWindow::MainWindow(QWidget *parent) :
 
 MainWindow::~MainWindow()
 {
+    closeDatabase();
     delete ui;
+}
+
+void MainWindow::resizeEvent(QResizeEvent * evt)
+{
+    ui->refImage->setPixmap(scalePixmapAspectRatio(m_refPixmap, ui->refImage->width(), ui->refImage->height()));
+    ui->curImage->setPixmap(scalePixmapAspectRatio(m_curPixmap, ui->curImage->width(), ui->curImage->height()));
+    QMainWindow::resizeEvent(evt);
+}
+
+void MainWindow::scaleQLabelPixmap(QLabel* lbl)
+{
+    const QPixmap * pixmap = lbl->pixmap();
+    if (pixmap)
+    {
+        // get label dimensions
+        int w = lbl->width();
+        int h = lbl->height();
+
+        // set a scaled pixmap to a w x h window keeping its aspect ratio
+        lbl->setPixmap(pixmap->scaled(w, h, Qt::KeepAspectRatio));
+    }
+}
+
+void MainWindow::closeDatabase()
+{
     if (m_dbOpened)
     {
         auto db = QSqlDatabase::database();
@@ -53,37 +91,44 @@ void MainWindow::followEvolution()
     qInfo() << fileName;
 
     // open database
+    closeDatabase();
     auto db = QSqlDatabase::addDatabase("QSQLITE");
     db.setDatabaseName(fileName);
     m_dbOpened = db.open();
     if (m_dbOpened)
     {
+        qInfo() << "opened database";
         m_dir = QFileInfo(fileName).absolutePath();
 
         // configure slider
         ui->generationSlider->setMinimum(0);
-        ui->generationSlider->setMaximum(maxGenerationNumber() / GenerationFrequency);
         ui->generationSlider->setTickInterval(1);
         ui->generationSlider->setEnabled(true);
         ui->generationSlider->setSingleStep(1);
         ui->generationSlider->setValue(0);
+        ui->generationSlider->setMaximum(maxGenerationNumber() / GenerationFrequency);
 
-        // show images
+        // show generated images and data at generation 0
         showGenerationImage(0);
         showGenerationData(0);
-        ui->refImage->setPixmap(loadPixmap("_ref.png"));
+
+        // show reference image
+        m_refPixmap = loadPixmap("_ref.png");
+        ui->refImage->setPixmap(scalePixmapAspectRatio(m_refPixmap, ui->refImage->width(), ui->refImage->height()));
 
         // open socket signaling arrival of new generation data
         m_sock.connectToServer(m_dir + QDir::separator() + socketName, QIODevice::ReadOnly);
     }
-    qInfo() << "db.open() -> " << m_dbOpened;
 }
 
 void MainWindow::showGenerationImage(int value)
 {
     auto generation = value * GenerationFrequency;
     if (m_dbOpened)
-        ui->curImage->setPixmap(loadPixmap(QString::number(generation) + ".png"));
+    {
+        m_curPixmap = loadPixmap(QString::number(generation) + ".png");
+        ui->curImage->setPixmap(scalePixmapAspectRatio(m_curPixmap, ui->curImage->width(), ui->curImage->height()));
+    }
 }
 
 QPixmap MainWindow::loadPixmap(QString fileName)

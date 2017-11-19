@@ -26,7 +26,7 @@
          </sizepolicy>
         </property>
         <property name="text">
-         <string>TextLabel</string>
+         <string/>
         </property>
         <property name="alignment">
          <set>Qt::AlignCenter</set>
@@ -42,7 +42,7 @@
          </sizepolicy>
         </property>
         <property name="text">
-         <string>TextLabel</string>
+         <string/>
         </property>
         <property name="alignment">
          <set>Qt::AlignCenter</set>
@@ -198,7 +198,7 @@
    <sender>action_Open_folder</sender>
    <signal>triggered()</signal>
    <receiver>MainWindow</receiver>
-   <slot>watchEvolution()</slot>
+   <slot>followEvolution()</slot>
    <hints>
     <hint type="sourcelabel">
      <x>-1</x>
@@ -244,7 +244,7 @@
   </connection>
  </connections>
  <slots>
-  <slot>watchEvolution()</slot>
+  <slot>followEvolution()</slot>
   <slot>showGenerationImage(int)</slot>
   <slot>showGenerationData(int)</slot>
  </slots>

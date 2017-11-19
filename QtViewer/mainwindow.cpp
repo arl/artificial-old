@@ -39,7 +39,7 @@ MainWindow::~MainWindow()
     }
 }
 
-void MainWindow::watchEvolution()
+void MainWindow::followEvolution()
 {
     // user must choose a folder containing a `generations.db` file
     auto fileName = QFileDialog::getOpenFileName(this,

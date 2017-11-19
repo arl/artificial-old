@@ -16,7 +16,7 @@ public:
     ~MainWindow();
 
 public slots:
-    void watchEvolution();
+    void followEvolution();
     void showGenerationImage(int value);
     void showGenerationData(int value);
 

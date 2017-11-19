@@ -4,11 +4,13 @@
 #include <QFileInfo>
 #include <QPixmap>
 #include <QSqlQuery>
+#include <QIODevice>
 
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
 constexpr int GenerationFrequency = 100;
+const QString socketName = "generation.sock";
 
 int maxGenerationNumber()
 {
@@ -27,6 +29,10 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
     m_dbOpened = false;
+    QObject::connect(&m_sock, static_cast<void(QLocalSocket::*)(QLocalSocket::LocalSocketError)>(&QLocalSocket::error),
+        this, &MainWindow::onSockError);
+    QObject::connect(&m_sock, &QLocalSocket::connected, this, &MainWindow::onSockConnected);
+    QObject::connect(&m_sock, &QLocalSocket::readyRead, this, &MainWindow::onSockReadyRead);
 }
 
 MainWindow::~MainWindow()
@@ -66,6 +72,9 @@ void MainWindow::followEvolution()
         showGenerationImage(0);
         showGenerationData(0);
         ui->refImage->setPixmap(loadPixmap("_ref.png"));
+
+        // open socket signaling arrival of new generation data
+        m_sock.connectToServer(m_dir + QDir::separator() + socketName, QIODevice::ReadOnly);
     }
     qInfo() << "db.open() -> " << m_dbOpened;
 }
@@ -106,3 +115,23 @@ void MainWindow::showGenerationData(int value)
         }
     }
 }
+
+void MainWindow::onSockError(QLocalSocket::LocalSocketError socketError)
+{
+    qWarning() << "socket error: " << socketError;
+}
+
+void MainWindow::onSockConnected()
+{
+    qInfo() << "socket connected";
+}
+
+void MainWindow::onSockReadyRead()
+{
+    qInfo() << "socket ready read";
+    // the socket is use to signal us new data exists in the database, so
+    // the data read can be discarded, we now have the information we want.
+    m_sock.readAll();
+    ui->generationSlider->setMaximum(maxGenerationNumber() / GenerationFrequency);
+}
+

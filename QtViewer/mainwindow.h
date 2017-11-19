@@ -20,6 +20,10 @@ public slots:
     void showGenerationImage(int value);
     void showGenerationData(int value);
 
+    void onSockError(QLocalSocket::LocalSocketError socketError);
+    void onSockConnected();
+    void onSockReadyRead();
+
 private:
 
     QPixmap loadPixmap(QString fileName);
@@ -27,6 +31,7 @@ private:
     Ui::MainWindow *ui;
     bool m_dbOpened;
     QString m_dir;
+    QLocalSocket m_sock;
 };
 
 #endif // MAINWINDOW_H

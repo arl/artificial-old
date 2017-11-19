@@ -13,7 +13,30 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-const dbName = "evolution.db"
+const (
+	dbName         = "evolution.db"
+	createTableStr = `CREATE TABLE generations(
+		id INTEGER NOT NULL PRIMARY KEY,
+		best_fitness REAL NOT NULL,
+		mean_fitness REAL NOT NULL,
+		fitness_stddev REAL NOT NULL,
+		natural_fitness INTEGER NOT NULL,
+		pop_size INTEGER NOT NULL,
+		elite_count INTEGER NOT NULL,
+		gen_number INTEGER NOT NULL,
+		elapsed INTEGER NOT NULL);`
+
+	insertGenerationStr = `INSERT INTO generations(
+		best_fitness,
+		mean_fitness,
+		fitness_stddev,
+		natural_fitness,
+		pop_size,
+		elite_count,
+		gen_number,
+		elapsed)
+		values(?, ?, ?, ?, ?, ?, ?, ?)`
+)
 
 type sqliteObserver struct {
 	db   *sql.DB   // sqlite db
@@ -39,28 +62,13 @@ func newSqliteObserver(freq int, outDir string) (o *sqliteObserver, err error) {
 		return nil, fmt.Errorf("can't open sqlite connection: %v", err)
 	}
 
-	sqlStmt := `
-	CREATE TABLE generations (
-		id INTEGER NOT NULL PRIMARY KEY,
-		best_fitness REAL NOT NULL,
-		mean_fitness REAL NOT NULL,
-		fitness_stddev REAL NOT NULL,
-		natural_fitness INTEGER NOT NULL,
-		pop_size INTEGER NOT NULL,
-		elite_count INTEGER NOT NULL,
-		gen_number INTEGER NOT NULL,
-		elapsed INTEGER NOT NULL);
-	`
-	//_, err = o.db.Exec(sqlStmt)
-	_, err = o.conn.ExecContext(context.TODO(), sqlStmt)
+	_, err = o.conn.ExecContext(context.TODO(), createTableStr)
 	if err != nil {
-		return nil, fmt.Errorf("can't exec query: %q: %s", err, sqlStmt)
+		return nil, fmt.Errorf("can't exec query: %q: %s", err, createTableStr)
 	}
 
 	return o, nil
 }
-
-const genInsertStr = `INSERT INTO generations (best_fitness, mean_fitness, fitness_stddev, natural_fitness, pop_size, elite_count, gen_number, elapsed) values(?, ?, ?, ?, ?, ?, ?, ?)`
 
 func (o *sqliteObserver) PopulationUpdate(data *framework.PopulationData) {
 	genNum := data.GenerationNumber()
@@ -70,7 +78,7 @@ func (o *sqliteObserver) PopulationUpdate(data *framework.PopulationData) {
 		if err != nil {
 			log.Fatal(err)
 		}
-		stmt, err := tx.Prepare(genInsertStr)
+		stmt, err := tx.Prepare(insertGenerationStr)
 		if err != nil {
 			log.Fatal(err)
 		}

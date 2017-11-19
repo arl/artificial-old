@@ -156,11 +156,15 @@ func (o *sqliteObserver) close() {
 	if err := o.db.Close(); err != nil {
 		log.Printf("error closing database: %v\n", err)
 	}
-	if err := o.unixLn.Close(); err != nil {
-		log.Printf("error closing unix socket listener: %v\n", err)
+	if o.unixLn != nil {
+		if err := o.unixLn.Close(); err != nil {
+			log.Printf("error closing unix socket listener: %v\n", err)
+		}
 	}
-	if err := o.unixConn.Close(); err != nil {
-		log.Printf("error closing unix socket connection: %v\n", err)
+	if o.unixConn != nil {
+		if err := o.unixConn.Close(); err != nil {
+			log.Printf("error closing unix socket connection: %v\n", err)
+		}
 	}
 }
 

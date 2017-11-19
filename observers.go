@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"net"
 	"os"
 	"path"
 	"time"
@@ -39,9 +40,12 @@ const (
 )
 
 type sqliteObserver struct {
-	db   *sql.DB   // sqlite db
-	conn *sql.Conn // keep connection here as nobody will use it
-	freq int       // backup every N generations
+	freq     int          // backup every N generations
+	outDir   string       // output directory
+	db       *sql.DB      // sqlite db
+	sqlConn  *sql.Conn    // keep connection here, nobody else will use it
+	unixLn   net.Listener // unix socket listener (use to signal viewer of new generations)
+	unixConn net.Conn     // unix socket connection
 }
 
 func newSqliteObserver(freq int, outDir string) (o *sqliteObserver, err error) {
@@ -49,32 +53,67 @@ func newSqliteObserver(freq int, outDir string) (o *sqliteObserver, err error) {
 		return nil, fmt.Errorf("sqliteObserver frequency can't be 0")
 	}
 
-	dbPath := path.Join(outDir, dbName)
+	o = &sqliteObserver{freq: freq, outDir: outDir}
+
+	if err = o.setupSQL(); err != nil {
+		return nil, err
+	}
+	if err = o.setupSignaling(); err != nil {
+		return nil, err
+	}
+	return o, nil
+}
+
+func (o *sqliteObserver) setupSQL() error {
+	dbPath := path.Join(o.outDir, dbName)
 	os.Remove(dbPath)
 
-	o = &sqliteObserver{freq: freq}
+	var err error
 	o.db, err = sql.Open("sqlite3", dbPath)
 	if err != nil {
-		return nil, fmt.Errorf("can't open sqlite db: %v", err)
+		return fmt.Errorf("can't open sqlite db: %v", err)
 	}
-	o.conn, err = o.db.Conn(context.TODO())
+	o.sqlConn, err = o.db.Conn(context.TODO())
 	if err != nil {
-		return nil, fmt.Errorf("can't open sqlite connection: %v", err)
+		return fmt.Errorf("can't open sqlite connection: %v", err)
+	}
+	_, err = o.sqlConn.ExecContext(context.TODO(), createTableStr)
+	if err != nil {
+		return fmt.Errorf("can't exec query: %q: %s", err, createTableStr)
+	}
+	return err
+}
+
+func (o *sqliteObserver) setupSignaling() error {
+	var err error
+	if o.unixLn == nil {
+		o.unixLn, err = net.Listen("unix", path.Join(o.outDir, "generation.sock"))
+		if err != nil {
+			return err
+		}
 	}
 
-	_, err = o.conn.ExecContext(context.TODO(), createTableStr)
-	if err != nil {
-		return nil, fmt.Errorf("can't exec query: %q: %s", err, createTableStr)
-	}
-
-	return o, nil
+	// listens for accepted connections in a go routine
+	go func() {
+		conn, err := o.unixLn.Accept()
+		if err != nil {
+			// handle error
+			log.Println("error accepting socket connection:", err)
+			o.unixConn = nil
+			return
+		}
+		log.Println("accepted socket connection")
+		o.unixConn = conn
+	}()
+	return nil
 }
 
 func (o *sqliteObserver) PopulationUpdate(data *framework.PopulationData) {
 	genNum := data.GenerationNumber()
 	if genNum%o.freq == 0 {
-		//tx, err := o.db.Begin()
-		tx, err := o.conn.BeginTx(context.TODO(), nil)
+
+		// fill sql table with generation data
+		tx, err := o.sqlConn.BeginTx(context.TODO(), nil)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -98,15 +137,30 @@ func (o *sqliteObserver) PopulationUpdate(data *framework.PopulationData) {
 		}
 		tx.Commit()
 
+		// signal external processes there is new data
+		if o.unixConn != nil {
+			if _, err = o.unixConn.Write([]byte("newdata")); err != nil {
+				log.Println("couldn't write to socket:", err)
+				o.unixConn.Close()
+				o.unixConn = nil
+				o.setupSignaling()
+			}
+		}
 	}
 }
 
 func (o *sqliteObserver) close() {
-	if err := o.conn.Close(); err != nil {
-		log.Printf("error closing connection: %v\n", err)
+	if err := o.sqlConn.Close(); err != nil {
+		log.Printf("error closing database connection: %v\n", err)
 	}
 	if err := o.db.Close(); err != nil {
 		log.Printf("error closing database: %v\n", err)
+	}
+	if err := o.unixLn.Close(); err != nil {
+		log.Printf("error closing unix socket listener: %v\n", err)
+	}
+	if err := o.unixConn.Close(); err != nil {
+		log.Printf("error closing unix socket connection: %v\n", err)
 	}
 }
 

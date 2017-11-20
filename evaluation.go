@@ -2,53 +2,12 @@ package main
 
 import (
 	"image"
-	"image/color"
 
 	"github.com/aurelien-rainone/evolve/framework"
 )
 
 type fitnessEvaluator struct {
 	img *image.RGBA // reference image
-}
-
-// compare a reference image to a test image and returns the difference
-
-// TODO: look at https://github.com/mapbox/pixelmatch/blob/master/index.js to
-// see preceived differences in color
-
-func imageDiff(ref, img *image.RGBA) float64 {
-	b := ref.Bounds()
-	w, h := b.Dx(), b.Dy()
-	// create a data set for storing all diff errors
-	data := make([]float64, w*h)
-	//var offset int
-	var diff int64
-	for y := 0; y < h; y++ {
-		for x := 0; x < w; x++ {
-			//r1, g1, b1, _, r2, g2, b2, _ := ref.At(x, y).RGBA(), img.At(x, y).RGBA()
-			diff = diffColor(ref.At(x, y), img.At(x, y))
-			//offset = y*ref.Stride + x*4
-			//r := ref.Pix[offset+0] - img.Pix[offset+0]
-			//g := ref.Pix[offset+1] - img.Pix[offset+1]
-			//b := ref.Pix[offset+2] - img.Pix[offset+2]
-			// alpha difference do not count
-			//a := ref.Pix[offset+3] - img.Pix[offset+3]
-			data[y*w+x] = float64(diff)
-		}
-	}
-	ds := framework.NewDataSet(framework.WithPrePopulatedDataSet(data))
-	return ds.ArithmeticMean()
-}
-
-func diffColor(c1, c2 color.Color) int64 {
-	r1, g1, b1, a1 := c1.RGBA()
-	r2, g2, b2, a2 := c2.RGBA()
-	var diff int64
-	diff += abs(int64(r1) - int64(r2))
-	diff += abs(int64(g1) - int64(g2))
-	diff += abs(int64(b1) - int64(b2))
-	diff += abs(int64(a1) - int64(a2))
-	return diff
 }
 
 func abs(x int64) int64 {
@@ -59,7 +18,36 @@ func abs(x int64) int64 {
 }
 
 func (fe *fitnessEvaluator) Fitness(c framework.Candidate, pop []framework.Candidate) float64 {
-	return imageDiff(fe.img, c.(*imageDNA).render())
+	var (
+		img            = c.(*imageDNA).render() // rendered chromosome
+		b              = fe.img.Bounds()        // image bounds
+		w, h           = b.Dx(), b.Dy()
+		data           = make([]float64, w*h) // data to store all pixel differences
+		off            int
+		diff           int64
+		rr, rg, rb, ra uint8
+		ir, ig, ib, ia uint8
+	)
+
+	// compare a reference image to a test image and returns the difference
+	for y := 0; y < h; y++ {
+		for x := 0; x < w; x++ {
+			off = y*fe.img.Stride + x*4
+			rr, rg, rb, ra = fe.img.Pix[off+0], fe.img.Pix[off+1], fe.img.Pix[off+2], fe.img.Pix[off+3]
+			ir, ig, ib, ia = img.Pix[off+0], img.Pix[off+1], img.Pix[off+2], img.Pix[off+3]
+			diff = abs(int64(rr) - int64(ir))
+			diff += abs(int64(rg) - int64(ig))
+			diff += abs(int64(rb) - int64(ib))
+			diff += abs(int64(ra) - int64(ia))
+			data[y*w+x] = float64(diff)
+		}
+	}
+
+	// TODO: if we are only going to do the arithmetic mean, no need to save
+	// each value, just sum them and divide by the number, avoiding costing
+	// allocation
+	ds := framework.NewDataSet(framework.WithPrePopulatedDataSet(data))
+	return ds.ArithmeticMean()
 }
 
 func (fe *fitnessEvaluator) IsNatural() bool {

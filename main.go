@@ -10,9 +10,11 @@ import (
 	"os"
 	"os/signal"
 	"path"
+	"runtime/pprof"
 	"time"
 
 	"github.com/aurelien-rainone/evolve"
+	"github.com/aurelien-rainone/evolve/operators"
 	"github.com/aurelien-rainone/evolve/selection"
 	"github.com/aurelien-rainone/evolve/termination"
 )
@@ -26,6 +28,16 @@ func check(err error) {
 func main() {
 	err := readConfig()
 	check(err)
+
+	if *cpuprofile != "" {
+		f, err := os.Create(*cpuprofile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Println("creating cpuprofile:", *cpuprofile)
+		pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
+	}
 
 	fmt.Println("Reference image:", appConfig.RefImage)
 	f, err := os.Open(appConfig.RefImage)

@@ -61,10 +61,15 @@ var appConfig = struct {
 	}
 }{}
 
+var (
+	configFile = flag.String("cfg", "config.yml", "configuration file")
+	refImage   = flag.String("img", "", "reference image (PNG)")
+	cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
+)
+
 func readConfig() error {
-	configFile := flag.String("cfg", "config.yml", "configuration file")
-	refImage := flag.String("img", "", "reference image (PNG)")
 	flag.Parse()
+
 	err := cfg.Load(&appConfig, *configFile)
 	if err != nil {
 		return fmt.Errorf("read config error: %v", err)

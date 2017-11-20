@@ -102,6 +102,16 @@ func evolveImage(img *image.RGBA) (image.Image, error) {
 		return nil, err
 	}
 
+	// crossover settings
+	crossover, err := newImageDNACrossover()
+	if err != nil {
+		return nil, err
+	}
+
+	// create a pipeline that applies mutation then crossover
+	pipeline, err := operators.NewEvolutionPipeline(mutation, crossover)
+	check(err)
+
 	// define a selection strategy
 	selectionStrategy, err := selection.NewTruncationSelection(selection.WithConstantSelectionRatio(0.1))
 	if err != nil {
@@ -112,7 +122,7 @@ func evolveImage(img *image.RGBA) (image.Image, error) {
 	evaluator := &fitnessEvaluator{img}
 
 	engine := evolve.NewGenerationalEvolutionEngine(DNAFactory,
-		mutation,
+		pipeline,
 		evaluator,
 		selectionStrategy,
 		rng)

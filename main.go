@@ -113,10 +113,7 @@ func evolveImage(img *image.RGBA) (image.Image, error) {
 	check(err)
 
 	// define a selection strategy
-	selectionStrategy, err := selection.NewTruncationSelection(selection.WithConstantSelectionRatio(0.1))
-	if err != nil {
-		return nil, err
-	}
+	selectionStrategy := selection.Identity{}
 
 	// define a fitness evaluator
 	evaluator := &fitnessEvaluator{img}

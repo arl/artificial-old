@@ -116,7 +116,7 @@ func evolveImage(img *image.RGBA) (image.Image, error) {
 	selectionStrategy := selection.Identity{}
 
 	// define a fitness evaluator
-	evaluator := &fitnessEvaluator{img}
+	evaluator := &cairoEvaluator{img}
 
 	engine := evolve.NewGenerationalEvolutionEngine(DNAFactory,
 		pipeline,

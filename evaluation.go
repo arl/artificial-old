@@ -1,11 +1,6 @@
 package main
 
-import (
-	"image"
-
-	"github.com/aurelien-rainone/evolve/framework"
-)
-
+/*
 type fitnessEvaluator struct {
 	img *image.RGBA // reference image
 }
@@ -46,3 +41,4 @@ func abs(x int64) int64 {
 	}
 	return x
 }
+*/

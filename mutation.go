@@ -115,8 +115,8 @@ func (op *imageDNAMutater) Mutate(c framework.Candidate, rng *rand.Rand) framewo
 			// change poly color
 			// TODO: which is best? try to evolve current color or start with a
 			// random one
-			poly.col = randomColor(rng)
-			//evolveColor(&poly.col, rng)
+			//poly.col = randomColor(rng)
+			evolveColor(&poly.col, rng)
 		}
 
 		if op.addPointMutation.NextValue().NextEvent(rng) {
@@ -168,7 +168,7 @@ const (
 	maxByteEvolution        = math.MaxUint8 / maxByteEvolutionPercent
 )
 
-func evolveColor(c *color.RGBA, rng *rand.Rand) {
+func evolveColor(c *color.Color, rng *rand.Rand) {
 	evolveByte := func(b byte) byte {
 		// max byte value
 		var maxVal byte = math.MaxUint8
@@ -183,10 +183,13 @@ func evolveColor(c *color.RGBA, rng *rand.Rand) {
 		}
 		return minVal + byte(rng.Intn(int(maxVal-minVal)))
 	}
+	r, g, b, a := (*c).RGBA()
 
 	// we want each color component to get +/- 10% than their current value
-	c.R = evolveByte(c.R)
-	c.G = evolveByte(c.G)
-	c.B = evolveByte(c.B)
-	c.A = evolveByte(c.A)
+	*c = &color.NRGBA{
+		R: evolveByte(byte(r)),
+		G: evolveByte(byte(g)),
+		B: evolveByte(byte(b)),
+		A: evolveByte(byte(a)),
+	}
 }

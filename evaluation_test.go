@@ -40,15 +40,16 @@ func BenchmarkRenderImageDNA(b *testing.B) {
 }
 
 func BenchmarkFitnessEvaluator(b *testing.B) {
-	want := 6.297434e+06
-	failStr := "if createTestCandidate function has not changed, want fitness %v, got %v"
+	want := 0.0
 
-	// generate random reference and candidate images
-	ref := createTestCandidate(255, 0, 0)
-	cand := createTestCandidate(0, 255, 0)
+	refImageFn := "testdata/red.png"
+	ref, err := loadPNGAsRGBA(refImageFn)
+	if err != nil {
+		b.Fatal(err)
+	}
 
-	// create the fitness evaluator
-	evaluator := fitnessEvaluator{img: ref.render()}
+	cand := monochromeImage(ref.Bounds().Dx(), ref.Bounds().Dy(), color.RGBA{255, 0, 0, 255})
+	evaluator := fitnessEvaluator{img: ref}
 
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
@@ -57,7 +58,27 @@ func BenchmarkFitnessEvaluator(b *testing.B) {
 		b.StopTimer()
 
 		if got != want {
-			b.Fatalf(failStr, want, got)
+			b.Fatalf("wrong fitness, want %v, got %v", want, got)
+		}
+	}
+}
+
+func BenchmarkCairoFitnessEvaluator(b *testing.B) {
+	want := 0.0
+
+	refImageFn := "testdata/red.png"
+	cand := monochromeImage(128, 128, color.RGBA{255, 0, 0, 255})
+
+	evaluator := newCairoEvaluator(refImageFn)
+
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		b.StartTimer()
+		got := evaluator.Fitness(cand, nil)
+		b.StopTimer()
+
+		if got != want {
+			b.Fatalf("wrong fitness, want %v, got %v", want, got)
 		}
 	}
 }

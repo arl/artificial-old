@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdbool.h>
 #include <cairo/cairo.h>
 
 typedef unsigned int uint32;
@@ -23,6 +24,9 @@ typedef struct
     poly *polys;
 } imageDNA;
 
+int
+evaluator_init(const char* path, uint32 destw, uint32 desth, uint32 *orgw, uint32 *orgh);
+
 // render an image dna struct into a cairo surface
 int render(const imageDNA * dna);
 int render_void(const void * dna);
@@ -30,4 +34,6 @@ int render_void(const void * dna);
 // set `diffval` with a number representing the difference between 2 cairo
 // surfaces and return 1. Both surfaces should have the same type, width, height
 // and stride, or 0 will is returned and `diffval` is undefined.
-int diff_images(cairo_surface_t *cs1, cairo_surface_t *cs2, double* diffval);
+//int diff_images(cairo_surface_t *cs1, cairo_surface_t *cs2, double* diffval);
+
+int render_and_diff(const imageDNA * dna, double *diffval, size_t img_idx, bool save);

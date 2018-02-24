@@ -7,31 +7,43 @@ package main
 */
 import "C"
 import (
-	"image"
 	"unsafe"
 
 	"github.com/aurelien-rainone/evolve/framework"
+	"github.com/rs/zerolog/log"
 )
 
 type cairoEvaluator struct {
-	img *image.RGBA // reference image
+	orgImgW, orgImgH C.uint32
+}
+
+func newCairoEvaluator(path string) *cairoEvaluator {
+	cpath := C.CString(path)
+	defer C.free(unsafe.Pointer(cpath))
+
+	ev := new(cairoEvaluator)
+	rc := C.evaluator_init(cpath, 128, 128, &ev.orgImgW, &ev.orgImgH)
+	C.fflush(C.stdout)
+	if rc != 0 {
+		log.Fatal().Msgf("evaluator_init returned %v\n", rc)
+		return nil
+	}
+	return ev
 }
 
 func (ev *cairoEvaluator) Fitness(cand framework.Candidate, pop []framework.Candidate) float64 {
 	var (
-		dna    *imageDNA
-		cdna   C.imageDNA
-		bounds = ev.img.Bounds() // image bounds
+		dna  *imageDNA
+		cdna C.imageDNA
 	)
 
 	dna = cand.(*imageDNA)
 
-	cdna.w = C.uint32(bounds.Dx())
-	cdna.h = C.uint32(bounds.Dy())
+	cdna.w = ev.orgImgW
+	cdna.h = ev.orgImgH
 
 	// allocate an array of npolys C structs, of type C.poly
 	cdna.npolys = C.uint32(len(dna.polys))
-	//fmt.Println("cdna.npolys=", cdna.npolys, "len(dna.polys):", len(dna.polys))
 	cdna.polys = (*C.poly)(C.malloc(C.size_t(cdna.npolys) * C.sizeof_poly))
 	defer C.free(unsafe.Pointer(cdna.polys))
 	cdnaSize := unsafe.Sizeof(cdna)
@@ -70,16 +82,15 @@ func (ev *cairoEvaluator) Fitness(cand framework.Candidate, pop []framework.Cand
 		}
 	}
 
-	C.render(&cdna)
-	return 1
+	var diffval C.double = 0
+	rc := C.render_and_diff(&cdna, &diffval, 0, false)
+	if rc != 1 {
+		log.Fatal().Msg("render_and_diff errored")
+	}
+	return float64(diffval)
 }
 
 func (ev *cairoEvaluator) IsNatural() bool {
 	// the lesser the fitness the better
 	return false
 }
-
-// cgo links:
-// https://stackoverflow.com/questions/19910647/pass-struct-and-array-of-structs-to-c-function-from-go
-// https://coderwall.com/p/m_ma7q/pass-go-slices-as-c-array-parameters
-// cairo doc: file:///usr/share/gtk-doc/html/cairo/cairo-Image-Surfaces.html#cairo-format-t

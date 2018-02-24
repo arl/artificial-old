@@ -5,7 +5,6 @@ import (
 	"image"
 	"image/png"
 	"io/ioutil"
-	"log"
 	"math/rand"
 	"os"
 	"os/signal"
@@ -17,12 +16,18 @@ import (
 	"github.com/aurelien-rainone/evolve/operators"
 	"github.com/aurelien-rainone/evolve/selection"
 	"github.com/aurelien-rainone/evolve/termination"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
 
 func check(err error) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func init() {
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout})
 }
 
 func main() {
@@ -32,14 +37,14 @@ func main() {
 	if *cpuprofile != "" {
 		f, err := os.Create(*cpuprofile)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal().Err(err)
 		}
-		log.Println("creating cpuprofile:", *cpuprofile)
+		log.Info().Msgf("creating cpuprofile %s", *cpuprofile)
 		pprof.StartCPUProfile(f)
 		defer pprof.StopCPUProfile()
 	}
 
-	fmt.Println("Reference image:", appConfig.RefImage)
+	log.Info().Msgf("Reference image %s", appConfig.RefImage)
 	f, err := os.Open(appConfig.RefImage)
 	check(err)
 	defer f.Close()
@@ -114,15 +119,24 @@ func evolveImage(img *image.RGBA) (image.Image, error) {
 
 	// define a selection strategy
 	selectionStrategy := selection.Identity{}
+	//selectionStrategy, err := selection.NewTruncationSelection(selection.WithConstantSelectionRatio(0.1))
+	//if err != nil {
+	//return nil, err
+	//}
 
 	// define a fitness evaluator
-	evaluator := &cairoEvaluator{img}
+	evaluator := newCairoEvaluator(appConfig.RefImage)
+	if evaluator == nil {
+		return nil, fmt.Errorf("can't create cairo evaluator")
+	}
 
 	engine := evolve.NewGenerationalEvolutionEngine(DNAFactory,
 		pipeline,
 		evaluator,
 		selectionStrategy,
 		rng)
+
+	engine.SetSingleThreaded(true)
 
 	// define termination conditions
 	userAbort := termination.NewUserAbort()
@@ -133,7 +147,7 @@ func evolveImage(img *image.RGBA) (image.Image, error) {
 	if err != nil {
 		return nil, fmt.Errorf("output directory error:, %v", err)
 	}
-	log.Println("ouput directory:", outDir)
+	log.Info().Msgf("ouput directory: %s", outDir)
 
 	// define evolution observers
 	bestObs, err := newBestObserver(100, outDir)
@@ -169,9 +183,9 @@ func evolveImage(img *image.RGBA) (image.Image, error) {
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("Evolution ended...")
+	log.Info().Msg("Evolution ended...")
 	for _, cond := range satisfied {
-		fmt.Println(cond)
+		log.Info().Msg(cond.String())
 	}
 	return best.(*imageDNA).render(), nil
 }

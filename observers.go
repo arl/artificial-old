@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
 	"net"
 	"os"
 	"path"
@@ -12,6 +11,7 @@ import (
 
 	"github.com/aurelien-rainone/evolve/framework"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/rs/zerolog/log"
 )
 
 const (
@@ -98,11 +98,12 @@ func (o *sqliteObserver) setupSignaling() error {
 		conn, err := o.unixLn.Accept()
 		if err != nil {
 			// handle error
-			log.Println("error accepting socket connection:", err)
+
+			log.Error().Err(err).Msg("error accepting socket connection")
 			o.unixConn = nil
 			return
 		}
-		log.Println("accepted socket connection")
+		log.Info().Msg("accepted socket connection")
 		o.unixConn = conn
 	}()
 	return nil
@@ -115,11 +116,11 @@ func (o *sqliteObserver) PopulationUpdate(data *framework.PopulationData) {
 		// fill sql table with generation data
 		tx, err := o.sqlConn.BeginTx(context.TODO(), nil)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal().Err(err).Msg("sql error")
 		}
 		stmt, err := tx.Prepare(insertGenerationStr)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal().Err(err).Msg("sql error")
 		}
 		defer stmt.Close()
 		_, err = stmt.Exec(
@@ -133,14 +134,14 @@ func (o *sqliteObserver) PopulationUpdate(data *framework.PopulationData) {
 			data.ElapsedTime()/time.Second,
 		)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal().Err(err).Msg("sql error")
 		}
 		tx.Commit()
 
 		// signal external processes there is new data
 		if o.unixConn != nil {
 			if _, err = o.unixConn.Write([]byte("newdata")); err != nil {
-				log.Println("couldn't write to socket:", err)
+				log.Error().Err(err).Msg("couldn't write to socket")
 				o.unixConn.Close()
 				o.unixConn = nil
 				o.setupSignaling()
@@ -151,14 +152,14 @@ func (o *sqliteObserver) PopulationUpdate(data *framework.PopulationData) {
 
 func (o *sqliteObserver) close() {
 	if err := o.sqlConn.Close(); err != nil {
-		log.Printf("error closing database connection: %v\n", err)
+		log.Error().Err(err).Msg("error closing database connection")
 	}
 	if err := o.db.Close(); err != nil {
-		log.Printf("error closing database: %v\n", err)
+		log.Error().Err(err).Msg("error closing database")
 	}
 	if o.unixLn != nil {
 		if err := o.unixLn.Close(); err != nil {
-			log.Printf("error closing unix socket listener: %v\n", err)
+			log.Error().Err(err).Msg("error closing unix socket listener")
 		}
 	}
 	if o.unixConn != nil {
@@ -184,7 +185,7 @@ func (o *bestObserver) PopulationUpdate(data *framework.PopulationData) {
 	generation := data.GenerationNumber()
 	if generation%o.freq == 0 {
 		// update best candidate
-		log.Printf("Generation %d: best: %.2f mean: %.2f stddev: %.2f\n",
+		log.Info().Msgf("Generation %d: best: %.2f mean: %.2f stddev: %.2f",
 			data.GenerationNumber(), data.BestCandidateFitness(), data.MeanFitness(), data.FitnessStandardDeviation())
 		saveToPng(
 			path.Join(o.outDir, fmt.Sprintf("%d.png", generation)),

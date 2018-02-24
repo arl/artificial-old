@@ -1,12 +1,14 @@
 #refimage:  "/path/to/ref/img.png"
 
 population:
-    numindividuals: 5
-    elitecount: 1
+    numindividuals: 20
+    elitecount: 2
+    #numindividuals: 2
+    #elitecount: 1
 
 image:
-    minpolys: 30
-    maxpolys: 50
+    minpolys: 40
+    maxpolys: 60
 
 polygon:
     minpoints: 3

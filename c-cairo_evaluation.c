@@ -72,7 +72,6 @@ evaluator_init(const char *path,
 {
   int rc = CAIRO_STATUS_SUCCESS;
   cairo_surface_t * cs;
-  printf("evaluator_init path=%s\n", path);
 
   w_ref = (int) destw;
   h_ref = (int) desth;
@@ -86,18 +85,15 @@ evaluator_init(const char *path,
     printf("error, surface status: %s\n", cairo_status_to_string(rc));
     return rc;
   }
-  printf("cs = %p\n", cs);
   cairo_format_t fmt = cairo_image_surface_get_format(cs);
 
   switch (fmt) {
     case CAIRO_FORMAT_ARGB32:
-      printf("converting from: ARGB32 to RGB24\n");
       copy_surface_to_rgb24(&cs_ref, cs);
       cairo_surface_destroy(cs);
       cairo_surface_write_to_png(cs_ref, "converted.png");
       break;
     case CAIRO_FORMAT_RGB24:
-      printf("image already in RGB24\n");
       cs_ref = cs;
       break;
     case CAIRO_FORMAT_A8:

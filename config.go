@@ -74,7 +74,6 @@ func readConfig() error {
 	if err != nil {
 		return fmt.Errorf("read config error: %v", err)
 	}
-	fmt.Println(appConfig)
 	if len(*refImage) > 0 {
 		appConfig.RefImage = *refImage
 	}

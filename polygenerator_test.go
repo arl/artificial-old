@@ -5,8 +5,6 @@ import (
 	"math/rand"
 	"testing"
 	"time"
-
-	"github.com/fogleman/gg"
 )
 
 func testRandomPoly(img *imageDNA, numPts int, rng *rand.Rand) poly {
@@ -31,7 +29,9 @@ func TestPolygonGeneration(t *testing.T) {
 	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
 	dna := imageDNA{w: 500, h: 500}
 	dna.polys = []poly{testRandomPoly(&dna, 6, rng)}
-	img := dna.render()
-	dc := gg.NewContextForRGBA(img)
-	dc.SavePNG("poly.png")
+
+	// XXX: this will obviously crash as no reference image has been set in the
+	// C library
+	imgPath := "poly.png"
+	renderAndDiff(&dna, &imgPath)
 }

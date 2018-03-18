@@ -13,6 +13,7 @@ static int w_ref, h_ref;
 
 /* forward declarations */
 int diff_images_rgb24(cairo_surface_t *cs1, cairo_surface_t *cs2, double* diffval);
+int draw_dna_to_surface(const imageDNA* dna, int w, int h, cairo_surface_t **cs);
 
 /**
  * destroy dst afterwards
@@ -129,81 +130,25 @@ evaluator_deinit() {
 }
 
 int
-render(const imageDNA* dna)
+render_and_diff(const imageDNA* dna, double *diffval, const char *dstpath)
 {
+  int rc = 0;
   const poly *p;
   const point *pt;
-  cairo_t *cr;
-  cairo_surface_t *cs;
+  cairo_surface_t *cs = NULL;
   cairo_status_t status;
-  char fn[256];
 
-  // init
-  cs = cairo_image_surface_create (CAIRO_FORMAT_ARGB32, dna->w, dna->h);
-  cr = cairo_create (cs);
-  for (int i=0; i < dna->npolys; ++i)
-  {
-    p = &dna->polys[i];
-    cairo_set_source_rgba(cr, DCLAMP(p->r), DCLAMP(p->g), DCLAMP(p->b), DCLAMP(p->a));
-    cairo_set_line_width(cr, 0);
-    for (int j=0; j < p->npts; ++j)
-    {
-      pt = &p->pts[j];
-      cairo_line_to(cr, pt->x, pt->y);
-    }
-    cairo_close_path(cr);
-    cairo_stroke_preserve(cr);
-    cairo_fill(cr);
+  printf("render_and_diff dna=0x%p diffval=%f dstpath=%s\n", dna, *diffval, dstpath);
+
+  // render the dna
+  rc = draw_dna_to_surface(dna, w_ref, h_ref, &cs);
+  if (rc) {
+    printf("couldn't draw dna to cairo surface");
+    return rc;
   }
 
-  if (status != CAIRO_STATUS_SUCCESS)
-     printf("cairo error: %s\n", cairo_status_to_string(status));
-
-  // cleanup
-  cairo_surface_destroy(cs);
-  cairo_destroy(cr);
-}
-
-
-/* render_and_diff will be called with save at true when called from an
- * Evolution Observer, as observers contains the best individuals, it will
- * always be possible to save an individual from there.
- */
-
-int
-render_and_diff(const imageDNA* dna, double *diffval, size_t img_idx, bool save)
-{
-  int rc;
-  const poly *p;
-  const point *pt;
-  cairo_t *cr;
-  cairo_surface_t *cs;
-  cairo_status_t status;
-  char fn[256];
-
-  // init
-  cs = cairo_image_surface_create(CAIRO_FORMAT_RGB24, w_ref, h_ref);
-  cr = cairo_create (cs);
-  for (int i=0; i < dna->npolys; ++i)
-  {
-    p = &dna->polys[i];
-    cairo_set_source_rgba(cr, DCLAMP(p->r), DCLAMP(p->g), DCLAMP(p->b), DCLAMP(p->a));
-    cairo_set_line_width(cr, 0);
-    for (int j=0; j < p->npts; ++j)
-    {
-      pt = &p->pts[j];
-      cairo_line_to(cr, pt->x, pt->y);
-    }
-    cairo_close_path(cr);
-    cairo_stroke_preserve(cr);
-    cairo_fill(cr);
-  }
-
-  // save if requested
-  if (save) {
-    sprintf(fn, "c.render%lu.png", img_idx);
-    status = cairo_surface_write_to_png(cs, fn);
-    /* TODO error management */
+  if (dstpath) {
+    status = cairo_surface_write_to_png(cs, dstpath);
     if (status != CAIRO_STATUS_SUCCESS)
        printf("cairo error: %s\n", cairo_status_to_string(status));
   }
@@ -212,6 +157,48 @@ render_and_diff(const imageDNA* dna, double *diffval, size_t img_idx, bool save)
 
   // cleanup
   cairo_surface_destroy(cs);
+  return rc;
+}
+
+/* Create a cairo surface and draw a DNA structure onto it. It's the caller
+ * responsibility to call cairo_surface_destroy on the surface after use.
+ */
+int
+draw_dna_to_surface(const imageDNA* dna, int w, int h, cairo_surface_t **cs)
+{
+  int rc = 0;
+  const poly *p;
+  const point *pt;
+  cairo_t *cr;
+  cairo_status_t status;
+  char fn[256];
+
+  if (!cs) {
+    printf("draw_dna_to_surface: invalid parameter `cs`\n");
+    return -1;
+  }
+
+  // init
+  *cs = cairo_image_surface_create(CAIRO_FORMAT_RGB24, w, h);
+  cr = cairo_create (*cs);
+  for (int i=0; i < dna->npolys; ++i)
+  {
+    p = &dna->polys[i];
+    printf("drawing poly[%d] npts=%d\n", i, p->npts);
+    cairo_set_source_rgba(cr, DCLAMP(p->r), DCLAMP(p->g), DCLAMP(p->b), DCLAMP(p->a));
+    cairo_set_line_width(cr, 0);
+    for (int j=0; j < p->npts; ++j)
+    {
+      pt = &p->pts[j];
+      printf("drawing pts[%d] x=%d y=%d\n", i, pt->x, pt->y);
+      cairo_line_to(cr, pt->x, pt->y);
+    }
+    cairo_close_path(cr);
+    cairo_stroke_preserve(cr);
+    cairo_fill(cr);
+  }
+
+  // cleanup
   cairo_destroy(cr);
   return rc;
 }

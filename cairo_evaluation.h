@@ -36,4 +36,5 @@ int render_void(const void * dna);
 // and stride, or 0 will is returned and `diffval` is undefined.
 //int diff_images(cairo_surface_t *cs1, cairo_surface_t *cs2, double* diffval);
 
-int render_and_diff(const imageDNA * dna, double *diffval, size_t img_idx, bool save);
+int
+render_and_diff(const imageDNA* dna, double *diffval, const char *dstpath);

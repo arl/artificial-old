@@ -1,48 +1,117 @@
 package main
 
+/*
+ #cgo pkg-config: cairo
+ #include <stdlib.h>
+ #include "cairo_evaluation.h"
+*/
+import "C"
 import (
-	"image"
+	"fmt"
+	"unsafe"
 
 	"github.com/aurelien-rainone/evolve/framework"
+	"github.com/rs/zerolog/log"
 )
 
-type fitnessEvaluator struct {
-	img *image.RGBA // reference image
+type cairoEvaluator struct {
+	orgImgW, orgImgH C.uint32
 }
 
-func (fe *fitnessEvaluator) Fitness(c framework.Candidate, pop []framework.Candidate) float64 {
-	var (
-		img        = c.(*imageDNA).render() // rendered chromosome
-		b          = fe.img.Bounds()        // image bounds
-		w, h       = b.Dx(), b.Dy()
-		off        int
-		diff       int64
-		pix1, pix2 []uint8
-	)
-	pix1 = fe.img.Pix
-	pix2 = img.Pix
+func newCairoEvaluator(path string) *cairoEvaluator {
+	cpath := C.CString(path)
+	defer C.free(unsafe.Pointer(cpath))
 
-	// compare a reference image to a test image and returns the difference
-	for y := 0; y < h; y++ {
-		for x := 0; x < w; x++ {
-			off = y*fe.img.Stride + x*4
-			diff += abs(int64(pix1[off+0])-int64(pix2[off+0])) +
-				abs(int64(pix1[off+1])-int64(pix2[off+1])) +
-				abs(int64(pix1[off+2])-int64(pix2[off+2])) +
-				abs(int64(pix1[off+3])-int64(pix2[off+3]))
-		}
+	ev := new(cairoEvaluator)
+	rc := C.evaluator_init(cpath, 128, 128, &ev.orgImgW, &ev.orgImgH)
+	C.fflush(C.stdout)
+	if rc != 0 {
+		log.Fatal().Msgf("evaluator_init returned %v\n", rc)
+		return nil
 	}
-	return float64(diff)
+	return ev
 }
 
-func (fe *fitnessEvaluator) IsNatural() bool {
+func (ev *cairoEvaluator) Fitness(cand framework.Candidate, pop []framework.Candidate) float64 {
+	return renderAndDiff(cand.(*imageDNA), nil)
+}
+
+func (ev *cairoEvaluator) IsNatural() bool {
 	// the lesser the fitness the better
 	return false
 }
 
-func abs(x int64) int64 {
-	if x < 0 {
-		return -x
+func toCDNA(dna *imageDNA, cdna *C.imageDNA, freelist []unsafe.Pointer) {
+	cdna.w = C.uint32(dna.w)
+	cdna.h = C.uint32(dna.h)
+
+	// allocate an array of npolys C structs, of type C.poly
+	cdna.npolys = C.uint32(len(dna.polys))
+	cdna.polys = (*C.poly)(C.malloc(C.size_t(cdna.npolys) * C.sizeof_poly))
+	freelist = append(freelist, unsafe.Pointer(cdna.polys))
+	cdnaSize := unsafe.Sizeof(cdna)
+	var r, g, b, a uint32
+
+	// fill the C.poly's
+	for i := uintptr(0); i < uintptr(cdna.npolys); i++ {
+		ithPolyAddr := uintptr(unsafe.Pointer(cdna.polys)) + cdnaSize*i
+		poly := dna.polys[i]
+		cpoly := (*C.poly)(unsafe.Pointer(ithPolyAddr))
+
+		r, g, b, a = poly.col.RGBA()
+		cpoly.r = C.uchar(r)
+		cpoly.g = C.uchar(g)
+		cpoly.b = C.uchar(b)
+		cpoly.a = C.uchar(a)
+		cpoly.npts = C.uint32(len(poly.pts))
+
+		// allocate an array of npts C struct, of type C.point. A C.point struct
+		// being made of 2 int32 points, its size is 8 bytes.
+
+		// TODO: the first element to the slice of points could easily be passed
+		// to C without more allocations as the Go and C Point struct layouts
+		// are probably the same, or they must be made the same of that is not
+		// the case. This would save us a lot of malloc/free
+
+		// fill the C.point's array
+		cpoly.pts = (*C.point)(C.malloc(C.size_t(len(poly.pts)) * 8))
+		freelist = append(freelist, unsafe.Pointer(cpoly.pts))
+		for j := uintptr(0); j < uintptr(cpoly.npts); j++ {
+			pt := poly.pts[j]
+			jthPointAddr := uintptr(unsafe.Pointer(cpoly.pts)) + 8*j
+			cpt := (*C.point)(unsafe.Pointer(jthPointAddr))
+			cpt.x = C.int32(pt.X)
+			cpt.y = C.int32(pt.Y)
+		}
 	}
-	return x
+}
+
+func renderAndDiff(dna *imageDNA, dstPath *string) float64 {
+	var (
+		cdna C.imageDNA
+		//cpath    *_C_type_char    = nil
+		freelist []unsafe.Pointer = make([]unsafe.Pointer, 0)
+		diffval  C.double         = 0
+	)
+
+	toCDNA(dna, &cdna, freelist)
+	defer func() {
+		for _, ptr := range freelist {
+			C.free(ptr)
+		}
+	}()
+
+	if dstPath != nil {
+		cpath := C.CString(*dstPath)
+		fmt.Printf("type of cpath is %T\n", cpath)
+		defer C.free(unsafe.Pointer(cpath))
+	}
+
+	cs := C.CString("blah")
+	log.Info().Msgf("about to call render_and_diff(cdna=%v diffval=%v dspath=%v)", cdna, diffval, cs)
+	rc := C.render_and_diff(&cdna, &diffval, cs)
+	if rc != 1 {
+		log.Fatal().Msg("render_and_diff errored")
+	}
+	return float64(diffval)
 }

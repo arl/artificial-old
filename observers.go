@@ -187,8 +187,9 @@ func (o *bestObserver) PopulationUpdate(data *framework.PopulationData) {
 		// update best candidate
 		log.Info().Msgf("Generation %d: best: %.2f mean: %.2f stddev: %.2f",
 			data.GenerationNumber(), data.BestCandidateFitness(), data.MeanFitness(), data.FitnessStandardDeviation())
-		saveToPng(
-			path.Join(o.outDir, fmt.Sprintf("%d.png", generation)),
-			data.BestCandidate().(*imageDNA).render())
+
+		// save this generation's best candidate
+		imgPath := path.Join(o.outDir, fmt.Sprintf("%d.png", generation))
+		renderAndDiff(data.BestCandidate().(*imageDNA), &imgPath)
 	}
 }

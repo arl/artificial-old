@@ -1,5 +1,11 @@
 package main
 
+/*
+ #cgo pkg-config: cairo
+ #include <stdlib.h>
+ #include "cairo_evaluation.h"
+*/
+import "C"
 import (
 	"fmt"
 	"image"
@@ -51,11 +57,8 @@ func main() {
 
 	img, err := png.Decode(f)
 	check(err)
-	bestImg, err := evolveImage(convertToRGBA(img))
-	check(err)
-
-	// save best candidate
-	err = saveToPng("best.png", bestImg)
+	// start evolution, saving the best candidate as 'best.png'
+	err = evolveImage(convertToRGBA(img), "best.png")
 	check(err)
 }
 
@@ -91,26 +94,26 @@ func convertToRGBA(img image.Image) *image.RGBA {
 	return rgba
 }
 
-func evolveImage(img *image.RGBA) (image.Image, error) {
+func evolveImage(img *image.RGBA, bestPath string) error {
 	// pseudo random number generator
 	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	// chromosome/image factory
 	DNAFactory, err := newImageDNAfactory(img.Bounds().Dx(), img.Bounds().Dy())
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// mutation settings
 	mutation, err := newImageDNAMutation()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// crossover settings
 	crossover, err := newImageDNACrossover()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// create a pipeline that applies mutation then crossover
@@ -127,7 +130,7 @@ func evolveImage(img *image.RGBA) (image.Image, error) {
 	// define a fitness evaluator
 	evaluator := newCairoEvaluator(appConfig.RefImage)
 	if evaluator == nil {
-		return nil, fmt.Errorf("can't create cairo evaluator")
+		return fmt.Errorf("can't create cairo evaluator")
 	}
 
 	engine := evolve.NewGenerationalEvolutionEngine(DNAFactory,
@@ -145,20 +148,20 @@ func evolveImage(img *image.RGBA) (image.Image, error) {
 	// define output directory for saves images and generations database
 	outDir, err := ioutil.TempDir("_output", "")
 	if err != nil {
-		return nil, fmt.Errorf("output directory error:, %v", err)
+		return fmt.Errorf("output directory error:, %v", err)
 	}
 	log.Info().Msgf("ouput directory: %s", outDir)
 
 	// define evolution observers
 	bestObs, err := newBestObserver(100, outDir)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	engine.AddEvolutionObserver(bestObs)
 
 	sqliteObs, err := newSqliteObserver(100, outDir)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer sqliteObs.close()
 	engine.AddEvolutionObserver(sqliteObs)
@@ -181,11 +184,13 @@ func evolveImage(img *image.RGBA) (image.Image, error) {
 
 	satisfied, err := engine.SatisfiedTerminationConditions()
 	if err != nil {
-		return nil, err
+		return err
 	}
 	log.Info().Msg("Evolution ended...")
 	for _, cond := range satisfied {
 		log.Info().Msg(cond.String())
 	}
-	return best.(*imageDNA).render(), nil
+
+	renderAndDiff(best.(*imageDNA), &bestPath)
+	return nil
 }

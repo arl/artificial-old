@@ -19,7 +19,7 @@ import (
 )
 
 var filename = flag.String("output", "lab_rgba_lut.go", "output file name")
-var pkgname = flag.String("pkgname", "color", "package name")
+var pkgname = flag.String("pkgname", "colors", "package name")
 var nsteps = flag.Int("nsteps", 16, "number of steps, color points per component")
 
 func main() {
@@ -49,9 +49,25 @@ func main() {
 }
 
 func printLab2RGB(w io.Writer) {
+	fmt.Fprintln(w, "// Resolution is the number of steps pre-computed in the lookup table")
+	fmt.Fprintf(w, "const Resolution = %v;\n", *nsteps)
+	fmt.Fprintln(w, "")
+	fmt.Fprintln(w, "// LToIndex converts from L to the corresponding index in the lookup table")
+	fmt.Fprintln(w, "// Note: as the result is generally used in tight loop, no control over the range")
+	fmt.Fprintln(w, "// will be performed, thus a must be in [0 1] or it will panic")
+	fmt.Fprintln(w, "func LToIndex(l float64) (lidx int) { return int(l * Resolution) }")
+	fmt.Fprintln(w, "")
+	fmt.Fprintln(w, "// AToIndex converts from A to the corresponding index in the lookup table")
+	fmt.Fprintln(w, "// Note: as the result is generally used in tight loop, no control over the")
+	fmt.Fprintln(w, "// range will be performed, thus a must be in [-1 1] or it will panic")
+	fmt.Fprintln(w, "func AToIndex(a float64) (aidx int) { return int((a + 1.0) * Resolution / 2) }")
+	fmt.Fprintln(w, "")
+	fmt.Fprintln(w, "// BToIndex converts from B to the corresponding index in the lookup table")
+	fmt.Fprintln(w, "// Note: as the result is generally used in tight loop, no control over the")
+	fmt.Fprintln(w, "// range will be performed, thus b must be in [-1 1] or it will panic")
+	fmt.Fprintln(w, "var BToIndex = AToIndex")
 	fmt.Fprintln(w, "// Lab2RGB is a lookup table converting values from CIE L*a*b colorspace to their")
 	fmt.Fprintln(w, "// equivalent in RGBA")
-	fmt.Fprintf(w, "const Lab2RGBNumSteps = %v;\n", *nsteps)
 	fmt.Fprintf(w, "var Lab2RGB = [%v][%v][%v]color.RGBA{\n", *nsteps, *nsteps, *nsteps)
 
 	lstep := (1.0 - 0.0) / (float64(*nsteps) - 1)
